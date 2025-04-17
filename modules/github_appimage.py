@@ -3,12 +3,14 @@ import requests
 from libraries import manageInstalledLib
 from libraries import sourcesLib
 from libraries import argumentsLib
+from libraries import launcherLib
 import time
 import os
 import stat
 import platform
 
 argumentsLib.commands += ["add-github-appimage", "install-github-appimage"]
+# argumentsLib.commandLength # TODO
 
 
 # https://stackoverflow.com/a/16696317
@@ -16,7 +18,6 @@ def download_file(url, output=None, prettyname=""):
     timeMark = time.time() + 1
     print(f"Downloading '{prettyname}' .", end="", flush=True)
     local_filename = output if output is not None else url.split("/")[-1]
-    # NOTE the stream=True parameter below
     with requests.get(url, stream=True) as r:
         r.raise_for_status()
         with open(local_filename, "wb") as f:
@@ -24,9 +25,6 @@ def download_file(url, output=None, prettyname=""):
                 if time.time() > timeMark:
                     print(".", end="", flush=True)
                     timeMark = time.time() + 1
-                # If you have chunk encoded response uncomment if
-                # and set chunk_size parameter to None.
-                # if chunk:
                 f.write(chunk)
     print()
     return local_filename
@@ -111,28 +109,12 @@ def install(candidate, nolauncher=False, path=False):
     print(f"{candidate['name']} successfully installed!")
 
     if not nolauncher:
-        launcherName = candidate["binary_name"] + ".desktop"
-        launcherPath = (
-            Path("~/.fluffpkg/data/appimage/launcher/").expanduser() / launcherName
+        launcherLib.add_launcher(
+            candidate["package_name"],
+            candidate["name"],
+            outPath,
+            candidate["categories"],
         )
-        launcherDest = Path("~/.local/share/applications/").expanduser() / launcherName
-        with open(launcherPath, "w+") as f:
-            f.write("[Desktop Entry]\n")
-            f.write(f"Name={candidate['name']}\n")
-            f.write(f"Exec={outPath}\n")
-            f.write(f"Categories={candidate['categories']}\n")
-            f.write("Type=Application\n")
-            f.write("Terminal=false\n")
-        launcherSuccess = True
-        try:
-            launcherDest.symlink_to(launcherPath)
-        except FileExistsError:
-            print(f"Warning: file exists, failed to sync launcher file. {launcherDest}")
-            launcherSuccess = False
-
-        if launcherSuccess:
-            print("Launcher .desktop added")
-
     if path:
         print(".appimage files aren't currently added to the path.")
 
@@ -151,7 +133,7 @@ def add(owner, repo):
         "module": "github-appimage",
         "module_version": 0,
         "name": repository["name"],
-        "binary_name": repository["name"].replace(" ", "_").lower(),
+        "package_name": repository["name"].replace(" ", "_").lower(),
         "categories": ";",
         "download_url": repository["full_name"],
     }

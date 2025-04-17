@@ -4,6 +4,7 @@ from tabulate import tabulate
 from libraries import argumentsLib
 from libraries import sourcesLib
 from libraries import manageInstalledLib
+from libraries import launcherLib
 import modules
 import sys
 
@@ -33,7 +34,7 @@ if args["--path"]:
 
 if args["command"] == "install":
     if len(args["command_args"]) == 0:
-        print("Usage: fluffpkg install package")
+        print("Usage: fluffpkg install <package>")
         exit()
     for cmd_arg in args["command_args"]:
         executable_name = cmd_arg
@@ -43,11 +44,11 @@ if args["command"] == "install":
             exit()
         type_of_candidate = q[0]
         if type_of_candidate == "weak_recommend":
-            names = [candidate["binary_name"] for candidate in q[1]]
+            names = [candidate["package_name"] for candidate in q[1]]
             print("Some weak matches were found:", ", ".join(names))
             exit()
         if type_of_candidate == "strong_recommend":
-            names = [candidate["binary_name"] for candidate in q[1]]
+            names = [candidate["package_name"] for candidate in q[1]]
             print("Did you mean:", ", ".join(names))
             exit()
         if type_of_candidate != "found":
@@ -70,7 +71,7 @@ elif args["command"] == "list":
                 [
                     install["name"],
                     install["version"],
-                    install["binary_name"],
+                    install["package_name"],
                     install["launcher"],
                     install["path"],
                     install["module"],
@@ -98,7 +99,7 @@ elif args["command"] == "list":
             table_data.append(
                 [
                     candidate["name"],
-                    candidate["binary_name"],
+                    candidate["package_name"],
                     candidate["module"],
                     candidate["source"].split(" ", 1)[1],
                 ]
@@ -107,6 +108,22 @@ elif args["command"] == "list":
             table_data, headers=["Name", "Executable Name", "Module", "Source"]
         )
         print(table)
+elif args["command"] == "modify":
+    if len(args["command_args"]) <= 1:
+        print("Usage: fluffpkg modify <package> <field> [values...]")
+        exit()
+    package = args["command_args"][0]
+    field = args["command_args"][1]
+    if field == "add-categories":
+        if len(args["command_args"]) <= 2:
+            print("Usage: fluffpkg modify package add-categories <categories>")
+            exit()
+        new_categories = args["command_args"][2:]
+        launcherLib.add_categories(package, new_categories)
+        print("Categories Added")
+    else:
+        print(f"Unknown field {field}")
+
 elif args["command"] == "add-github-appimage":
     for cmd_arg in args["command_args"]:
         owner, repo = cmd_arg.split("/")

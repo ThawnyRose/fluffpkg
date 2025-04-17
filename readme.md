@@ -34,7 +34,7 @@ NYI
 
 ### modify
 
-usage: `fluffpkg modify package [addlauncher, removelauncher, addpath, removepath]`<br/>
+usage: `fluffpkg modify package [add-launcher, remove-launcher, add-path, remove-path, add-categories]`<br/>
 Applies the given modification<br/>
 NYI
 

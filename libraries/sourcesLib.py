@@ -47,7 +47,7 @@ def query(name):
     strong_recommend = []
     weak_recommend = []
     for candidate in _candidates:
-        if name == candidate["binary_name"]:
+        if name == candidate["package_name"]:
             return ("found", candidate)
         if name in candidate["name"].lower():
             strong_recommend.append(candidate)

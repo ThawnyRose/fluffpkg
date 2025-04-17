@@ -16,6 +16,14 @@ value_arguments = []
 
 commands = ["install", "list", "upgrade", "modify", "remove"]
 
+commandLength = {
+    "install": "All",
+    "list": "None",
+    "upgrade": "All",
+    "modify": "All",
+    "remove": "All",
+}
+
 
 def print_help():
     print(program_usage)
@@ -27,13 +35,18 @@ def print_help():
 
 
 def parse_args(args):
+    o_args = args
     args = [x.lower() for x in args]
+
     output = {}
     # command = args[-1]
     # args = args[:-1]
     skip_next = False
     for i, a in enumerate(args):
-        if skip_next:
+        if type(skip_next) is bool and skip_next:
+            continue
+        elif type(skip_next) is int and skip_next > 0:
+            skip_next -= 1
             continue
         this_arg = ""
         this_val = ""
@@ -55,9 +68,13 @@ def parse_args(args):
         if this_arg == "":
             if a in commands:
                 output["command"] = a
-                output["command_args"] = args[i + 1 :]
-                skip_next = True
-                continue
+                length = commandLength.get(a, "All")
+                if length == "All":
+                    output["command_args"] = o_args[i + 1 :]
+                    skip_next = True
+                    continue
+                if length == "None":
+                    continue
 
         if this_arg == "":
             print(f"Unknown argument: {a}")

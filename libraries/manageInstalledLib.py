@@ -29,12 +29,11 @@ def checkload():
 
 def mark_installed(candidate, version, launcher, path):
     checkload()
-    global _installed
     _installed.append(
         {
             "name": candidate["name"],
             "version": version,
-            "binary_name": candidate["binary_name"],
+            "package_name": candidate["package_name"],
             "launcher": launcher,
             "path": path,
             "module": candidate["module"],
@@ -47,10 +46,17 @@ def mark_installed(candidate, version, launcher, path):
 
 def check_installed(candidate):
     checkload()
-    global _installed
     for i in _installed:
         if i["name"] == candidate["name"]:
             return True
+    return False
+
+
+def query(package):
+    checkload()
+    for i in _installed:
+        if i["name"] == package or i["package_name"] == package:
+            return i
     return False
 
 
