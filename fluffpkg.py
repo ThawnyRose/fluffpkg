@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from pathlib import Path
 from tabulate import tabulate
 from libraries import argumentsLib
