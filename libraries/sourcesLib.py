@@ -4,20 +4,23 @@ import json
 _candidates = []
 loaded = False
 
+defaultSourcePath = "~/.fluffpkg/source"
+defaultSource = f"File {defaultSourcePath}"
+
 
 def load():
     global _candidates, loaded
     loaded = True
     candidates = []
-    src_path = Path("~/.fluffpkg/sources.lst").expanduser()
+    src_path = Path("~/.fluffpkg/source.lst").expanduser()
     if src_path.exists():
         with open(src_path, "r") as f:
             sourcesText = f.read()
     else:
-        sourcesText = "File ~/.fluffpkg/source\n"
+        sourcesText = defaultSource + "\n"
         with open(src_path, "w+") as f:
             f.write(sourcesText)
-        src_file_path = Path("~/.fluffpkg/source").expanduser()
+        src_file_path = Path(defaultSourcePath).expanduser()
         if not src_file_path.exists():
             with open(src_file_path, "w+") as f:
                 f.write("")
@@ -41,15 +44,15 @@ def checkload():
         load()
 
 
-def query(name):
+def query(package):
     checkload()
-    name = name.lower()
+    package = package.lower()
     strong_recommend = []
     weak_recommend = []
     for candidate in _candidates:
-        if name == candidate["package_name"]:
+        if package == candidate["package_name"]:
             return ("found", candidate)
-        if name in candidate["name"].lower():
+        if package in candidate["name"].lower():
             strong_recommend.append(candidate)
 
     if len(strong_recommend) != 0:
@@ -59,9 +62,26 @@ def query(name):
     return ()
 
 
-def add(candidate):
+def check_existing_source(package):
+    for candidate in _candidates:
+        if package == candidate["package_name"]:
+            return True
+    return False
+
+
+def add(candidate, checkExists=True):
     checkload()
-    default_source = Path("~/.fluffpkg/source").expanduser()
+
+    if check_existing_source(candidate["package_name"]):
+        if checkExists:
+            print(
+                f"Package '{candidate['package_name']}' is already sourced. Try `install`."
+            )
+            exit()
+        else:
+            return
+
+    default_source = Path(defaultSourcePath).expanduser()
 
     with open(default_source, "r") as f:
         default_candidates = json.load(f)

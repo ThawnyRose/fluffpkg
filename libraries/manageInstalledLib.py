@@ -37,7 +37,7 @@ def mark_installed(candidate, version, launcher, path):
             "launcher": launcher,
             "path": path,
             "module": candidate["module"],
-            "source": candidate["source"],
+            "source": candidate.get("source", "unknown unknown"),
         }
     )
     with open(installed_path, "w+") as f:
@@ -47,7 +47,7 @@ def mark_installed(candidate, version, launcher, path):
 def check_installed(candidate):
     checkload()
     for i in _installed:
-        if i["name"] == candidate["name"]:
+        if i["package_name"] == candidate["package_name"]:
             return True
     return False
 
@@ -55,7 +55,7 @@ def check_installed(candidate):
 def query(package):
     checkload()
     for i in _installed:
-        if i["name"] == package or i["package_name"] == package:
+        if i["package_name"] == package:
             return i
     return False
 

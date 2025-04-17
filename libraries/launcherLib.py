@@ -4,14 +4,10 @@ from libraries import manageInstalledLib
 
 def add_categories(package, new_categories):
     if type(new_categories) is str:
-        if ";" not in new_categories:
-            new_categories = ";".join(new_categories.split(" "))
-
-    if type(new_categories) is list:
-        new_categories = ";".join(new_categories)
-
-    if not new_categories.endswith(";"):
-        new_categories += ";"
+        if ";" in new_categories:
+            new_categories = new_categories.split(";")
+        else:
+            new_categories = new_categories.split(" ")
 
     install = manageInstalledLib.query(package)
     if not install:
@@ -31,20 +27,16 @@ def add_categories(package, new_categories):
     lines = launcher_contents.split("\n")
     for i in range(len(lines)):
         if lines[i].startswith("Categories="):
-            if not lines[i].endswith(";"):
-                lines[i] += ";"
-            lines[i] += new_categories
-            lines[i] = (
-                lines[i].replace("Categories=;", "Categories=")
-                if lines[i] != "Categories=;"
-                else lines[i]
+            old_categories = [x for x in lines[i][11:].split(";") if x != ""]
+            lines[i] = "Categories=" + (
+                ";".join(list(set(old_categories + new_categories))) + ";"
             )
             found_category_line = True
     launcher_contents = "\n".join(lines)
     if not found_category_line:
         if not launcher_contents.endswith("\n"):
             launcher_contents += "\n"
-        launcher_contents += f"Categories={new_categories}\n"
+        launcher_contents += f"Categories={';'.join(new_categories)};\n"
     with open(launcherPath, "w+") as f:
         f.write(launcher_contents)
 

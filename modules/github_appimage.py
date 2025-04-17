@@ -89,7 +89,9 @@ def setup():
 
 def install(candidate, nolauncher=False, path=False):
     if manageInstalledLib.check_installed(candidate):
-        print(f"Package '{candidate['name']}' is already installed. Try `upgrade`.")
+        print(
+            f"Package '{candidate['package_name']}' is already installed. Try `upgrade`."
+        )
         exit()
     setup()
     assert candidate["module"] == "github-appimage"
@@ -136,8 +138,9 @@ def add(owner, repo):
         "package_name": repository["name"].replace(" ", "_").lower(),
         "categories": ";",
         "download_url": repository["full_name"],
+        "source": sourcesLib.defaultSource,
     }
-    sourcesLib.add(candidate)
+    sourcesLib.add(candidate, checkExists=False)
     return candidate
 
 
