@@ -39,6 +39,47 @@ def add_categories(package, new_categories):
         launcher_contents += f"Categories={';'.join(new_categories)};\n"
     with open(launcherPath, "w+") as f:
         f.write(launcher_contents)
+    print("Categories Added")
+
+
+def remove_categories(package, new_categories):
+    if type(new_categories) is str:
+        if ";" in new_categories:
+            new_categories = new_categories.split(";")
+        else:
+            new_categories = new_categories.split(" ")
+
+    install = manageInstalledLib.query(package)
+    if not install:
+        print("Could not update launcher, package not installed")
+        exit()
+    if not install["launcher"]:
+        print("Could not update launcher, package does not have launcher")
+        exit()
+
+    launcherName = package + ".desktop"
+    launcherPath = (
+        Path("~/.fluffpkg/data/appimage/launcher/").expanduser() / launcherName
+    )
+    found_category_line = False
+    with open(launcherPath, "r") as f:
+        launcher_contents = f.read()
+    lines = launcher_contents.split("\n")
+    for i in range(len(lines)):
+        if lines[i].startswith("Categories="):
+            old_categories = [x for x in lines[i][11:].split(";") if x != ""]
+            lines[i] = "Categories=" + (
+                ";".join(list(set(old_categories).difference(new_categories))) + ";"
+            )
+            found_category_line = True
+    launcher_contents = "\n".join(lines)
+    if not found_category_line:
+        if not launcher_contents.endswith("\n"):
+            launcher_contents += "\n"
+        launcher_contents += f"Categories={';'.join(new_categories)};\n"
+    with open(launcherPath, "w+") as f:
+        f.write(launcher_contents)
+    print("Categories Removed")
 
 
 def add_launcher(package, name, executable, categories):
@@ -68,6 +109,23 @@ def add_launcher(package, name, executable, categories):
         print("Launcher .desktop added")
 
 
+def add_launcher_later(package):
+    install = manageInstalledLib.query(package)
+    if not install:
+        print("Could not add launcher, package not installed")
+        exit()
+    if install["launcher"]:
+        print("Could not add launcher, package already has launcher")
+        exit()
+    add_launcher(
+        package,
+        install["name"],
+        install["executable_path"],
+        install.get("categories", []),
+    )
+    manageInstalledLib.mark_attribute(package, "launcher", True)
+
+
 def remove_launcher(package):
     launcherName = package + ".desktop"
     launcherPath = (
@@ -77,3 +135,4 @@ def remove_launcher(package):
     launcherPath.unlink()
     launcherDest.unlink()
     print("Launcher .desktop removed")
+    manageInstalledLib.mark_attribute(package, "launcher", False)

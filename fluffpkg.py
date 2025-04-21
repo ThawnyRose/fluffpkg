@@ -130,13 +130,28 @@ elif args["command"] == "modify":
     field = args["command_args"][1]
     if field == "add-categories":
         if len(args["command_args"]) <= 2:
-            print("Usage: fluffpkg modify package add-categories <categories>")
+            print("Usage: fluffpkg modify <package> add-categories <categories>")
             exit()
         new_categories = args["command_args"][2:]
         launcherLib.add_categories(package, new_categories)
-        print("Categories Added")
+    elif field == "remove-categories":
+        if len(args["command_args"]) <= 2:
+            print("Usage: fluffpkg modify <package> remove-categories <categories>")
+            exit()
+        new_categories = args["command_args"][2:]
+        launcherLib.remove_categories(package, new_categories)
+    elif field == "add-launcher":
+        if len(args["command_args"]) != 2:
+            print("Usage: fluffpkg modify <package> add-launcher")
+            exit()
+        launcherLib.add_launcher_later(package)
+    elif field == "remove-launcher":
+        if len(args["command_args"]) != 2:
+            print("Usage: fluffpkg modify <package> remove-launcher")
+            exit()
+        launcherLib.remove_launcher(package)
     else:
-        print(f"Unknown field {field}")
+        print(f"Unknown modification {field}")
 
 elif args["command"] == "add-github-appimage":
     for cmd_arg in args["command_args"]:

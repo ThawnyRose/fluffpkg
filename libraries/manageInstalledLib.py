@@ -32,17 +32,19 @@ def savechanges():
         json.dump(_installed, f)
 
 
-def mark_installed(candidate, version, launcher, path, **kwargs):
+def mark_installed(candidate, version, executable_path, categories, **kwargs):
     checkload()
     _installed.append(
         {
             "name": candidate["name"],
             "version": version,
             "package_name": candidate["package_name"],
-            "launcher": launcher,
-            "path": path,
+            "launcher": False,
+            "path": False,
             "module": candidate["module"],
             "source": candidate.get("source", "unknown unknown"),
+            "executable_path": executable_path,
+            "categories": categories,
             **kwargs,
         }
     )
@@ -58,23 +60,45 @@ def unmark_installed(package):
 
 def check_installed(candidate):
     checkload()
-    for i in _installed:
-        if i["package_name"] == candidate["package_name"]:
+    for install in _installed:
+        if install["package_name"] == candidate["package_name"]:
             return True
     return False
 
 
 def query(package):
     checkload()
-    for i in _installed:
-        if i["package_name"] == package:
-            return i
+    for install in _installed:
+        if install["package_name"] == package:
+            return install
     return False
 
 
 def list():
     checkload()
     return _installed
+
+
+def mark_attribute(package, name, value):
+    if name in [
+        "name",
+        "version",
+        "package_name",
+        "module",
+        "source",
+        "executable_path",
+    ]:
+        print(
+            "Internal Error: Installation record {name} cannot be changed by the mark_attribute function."
+        )
+        exit()
+    checkload()
+    for install in _installed:
+        if install["package_name"] == package:
+            install[name] = value
+            savechanges()
+            return
+    return
 
 
 if __name__ == "__main__":

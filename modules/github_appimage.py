@@ -110,9 +110,8 @@ def install(candidate, nolauncher=False, path=False):
     manageInstalledLib.mark_installed(
         candidate,
         release["Tag"],
-        not nolauncher,
-        path,
-        appimagepath=str(outPath.resolve()),
+        str(outPath.resolve()),
+        candidate["categories"],
     )
     print(f"{candidate['name']} successfully installed!")
 
@@ -162,6 +161,6 @@ def remove(installation):
         launcherLib.remove_launcher(
             pkg,
         )
-    appimage = Path(installation["appimagepath"])
+    appimage = Path(installation["executable_path"])
     appimage.unlink()
     manageInstalledLib.unmark_installed(pkg)
