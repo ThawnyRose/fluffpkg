@@ -1,3 +1,5 @@
+from libraries import moduleLib
+
 program_name = "fluffpkg"
 program_usage = "fluffpkg [options] command"
 program_desc = "The Fluffy Multipurpose Package Installer :3 - ThawnyRose"
@@ -14,21 +16,17 @@ arguments = [
 value_arguments = []
 # value_arguments = ["--module"]
 
-commands = ["install", "list", "upgrade", "modify", "remove"]
+builtin_commands = ["install", "list", "upgrade", "modify", "remove"]
 
-commandLength = {
-    "install": "All",
+commandLength = {  # Defaults to 'All', so those aren't listed
     "list": "None",
-    "upgrade": "All",
-    "modify": "All",
-    "remove": "All",
 }
 
 
 def print_help():
     print(program_usage)
     print(program_desc)
-    print(f"Commands: {', '.join(commands)}")
+    print(f"Commands: {', '.join(builtin_commands + moduleLib.commandNames())}")
     print("Options:")
     for i in arguments:
         print(f"\t{i}")
@@ -66,7 +64,7 @@ def parse_args(args):
                     this_val = a.split("=", 1)[1]
 
         if this_arg == "":
-            if a in commands:
+            if a in builtin_commands or a in moduleLib.commandNames():
                 output["command"] = a
                 length = commandLength.get(a, "All")
                 if length == "All":
@@ -77,7 +75,7 @@ def parse_args(args):
                     continue
 
         if this_arg == "":
-            print(f"Unknown argument: {a}")
+            print(f"Unknown Command: {a}")
             return False
 
         # print(this_arg)

@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 from pathlib import Path
 from tabulate import tabulate
-from libraries import argumentsLib
 from libraries import sourcesLib
 from libraries import manageInstalledLib
 from libraries import launcherLib
 import modules
+from libraries import moduleLib
+from libraries import argumentsLib
 import sys
 
 Path("~/.fluffpkg").expanduser().mkdir(parents=True, exist_ok=True)
@@ -13,7 +14,6 @@ Path("~/.fluffpkg").expanduser().mkdir(parents=True, exist_ok=True)
 sourcesLib.load()
 
 # args = ["remove", "cura"]  # DEBUG
-# args = ["-i", "list"]  # DEBUG
 args = sys.argv[1:]
 
 if len(args) == 0:
@@ -38,43 +38,40 @@ if args["command"] == "install":
         exit()
     for cmd_arg in args["command_args"]:
         package_name = cmd_arg
-        q = sourcesLib.query(package_name)
-        if len(q) == 0:
+        query = sourcesLib.query(package_name)
+        if len(query) == 0:
             print(f"Could not find installation candidate for {package_name}")
             exit()
-        type_of_candidate = q[0]
+        type_of_candidate = query[0]
         if type_of_candidate == "weak_recommend":
-            names = [candidate["package_name"] for candidate in q[1]]
+            names = [candidate["package_name"] for candidate in query[1]]
             print("Some weak matches were found:", ", ".join(names))
             exit()
         if type_of_candidate == "strong_recommend":
-            names = [candidate["package_name"] for candidate in q[1]]
+            names = [candidate["package_name"] for candidate in query[1]]
             print("Did you mean:", ", ".join(names))
             exit()
         if type_of_candidate != "found":
             print("Internal error:", "Unknown match type:", type_of_candidate)
             exit()
-        to_install = q[1]
-        if to_install["module"] == "github-appimage":
-            modules.github_appimage.install(
-                to_install,
-                nolauncher=args["--nolauncher"],
-                path=args["--path"],
-            )
+        to_install = query[1]
+        moduleLib.install(
+            to_install["module"],
+            to_install,
+            nolauncher=args["--nolauncher"],
+            path=args["--path"],
+        )
 elif args["command"] == "remove":
     if len(args["command_args"]) == 0:
         print("Usage: fluffpkg remove <packages...>")
         exit()
     for cmd_arg in args["command_args"]:
         package_name = cmd_arg
-        q = manageInstalledLib.query(package_name)
-        if not q:
+        install = manageInstalledLib.query(package_name)
+        if not install:
             print(f"{package_name} is not installed.")
             exit()
-        to_remove = q
-
-        if to_remove["module"] == "github-appimage":
-            modules.github_appimage.remove(to_remove)
+        moduleLib.remove(install["module"], install)
 elif args["command"] == "list":
     if args["--installed"]:
         installed = manageInstalledLib.list()
@@ -152,17 +149,8 @@ elif args["command"] == "modify":
         launcherLib.remove_launcher(package)
     else:
         print(f"Unknown modification {field}")
-
-elif args["command"] == "add-github-appimage":
-    for cmd_arg in args["command_args"]:
-        owner, repo = cmd_arg.split("/")
-        modules.github_appimage.add(owner, repo)
-elif args["command"] == "install-github-appimage":
-    for cmd_arg in args["command_args"]:
-        owner, repo = cmd_arg.split("/")
-        modules.github_appimage.add_install(
-            owner, repo, nolauncher=args["--nolauncher"], path=args["--path"]
-        )
+elif args["command"] in moduleLib.commandNames():
+    moduleLib.command(args["command"], args)
 else:
     print("Internal error:", "Unknown command:", args["command"])
     exit()

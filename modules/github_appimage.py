@@ -2,15 +2,12 @@ from pathlib import Path
 import requests
 from libraries import manageInstalledLib
 from libraries import sourcesLib
-from libraries import argumentsLib
 from libraries import launcherLib
+from libraries import moduleLib
 import time
 import os
 import stat
 import platform
-
-argumentsLib.commands += ["add-github-appimage", "install-github-appimage"]
-# argumentsLib.commandLength # TODO
 
 
 # https://stackoverflow.com/a/16696317
@@ -87,7 +84,7 @@ def setup():
     )
 
 
-def install(candidate, nolauncher=False, path=False):
+def install(candidate, nolauncher, path):
     if manageInstalledLib.check_installed(candidate):
         print(
             f"Package '{candidate['package_name']}' is already installed. Try `upgrade`."
@@ -126,6 +123,12 @@ def install(candidate, nolauncher=False, path=False):
         print(".appimage files aren't currently added to the path.")
 
 
+def add_cmd(args):
+    for cmd_arg in args["command_args"]:
+        owner, repo = cmd_arg.split("/")
+        add(owner, repo)
+
+
 def add(owner, repo):
     api_url = f"https://api.github.com/repos/{owner}/{repo}"
 
@@ -149,6 +152,12 @@ def add(owner, repo):
     return candidate
 
 
+def add_install_cmd(args):
+    for cmd_arg in args["command_args"]:
+        owner, repo = cmd_arg.split("/")
+        add_install(owner, repo, nolauncher=args["--nolauncher"], path=args["--path"])
+
+
 def add_install(owner, repo, nolauncher=False, path=False):
     candidate = add(owner, repo)
     install(candidate, nolauncher, path)
@@ -164,3 +173,16 @@ def remove(installation):
     appimage = Path(installation["executable_path"])
     appimage.unlink()
     manageInstalledLib.unmark_installed(pkg)
+
+
+moduleLib.register(
+    "github-appimage",
+    {
+        "install": install,
+        "remove": remove,
+        "commands": {
+            "add-github-appimage": add_cmd,
+            "install-github-appimage": add_install_cmd,
+        },
+    },
+)
