@@ -107,7 +107,13 @@ def install(candidate, nolauncher=False, path=False):
     outPath = Path("~/.fluffpkg/data/appimage/files/").expanduser() / name
     download_file(url, output=outPath, prettyname=name)
     os.chmod(outPath, os.stat(outPath).st_mode | stat.S_IXUSR | stat.S_IXGRP)
-    manageInstalledLib.mark_installed(candidate, release["Tag"], not nolauncher, path)
+    manageInstalledLib.mark_installed(
+        candidate,
+        release["Tag"],
+        not nolauncher,
+        path,
+        appimagepath=str(outPath.resolve()),
+    )
     print(f"{candidate['name']} successfully installed!")
 
     if not nolauncher:
@@ -147,3 +153,15 @@ def add(owner, repo):
 def add_install(owner, repo, nolauncher=False, path=False):
     candidate = add(owner, repo)
     install(candidate, nolauncher, path)
+
+
+def remove(installation):
+    assert installation["module"] == "github-appimage"
+    pkg = installation["package_name"]
+    if installation["launcher"]:
+        launcherLib.remove_launcher(
+            pkg,
+        )
+    appimage = Path(installation["appimagepath"])
+    appimage.unlink()
+    manageInstalledLib.unmark_installed(pkg)

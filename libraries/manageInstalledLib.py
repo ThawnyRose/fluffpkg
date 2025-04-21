@@ -27,7 +27,12 @@ def checkload():
         load()
 
 
-def mark_installed(candidate, version, launcher, path):
+def savechanges():
+    with open(installed_path, "w+") as f:
+        json.dump(_installed, f)
+
+
+def mark_installed(candidate, version, launcher, path, **kwargs):
     checkload()
     _installed.append(
         {
@@ -38,10 +43,17 @@ def mark_installed(candidate, version, launcher, path):
             "path": path,
             "module": candidate["module"],
             "source": candidate.get("source", "unknown unknown"),
+            **kwargs,
         }
     )
-    with open(installed_path, "w+") as f:
-        json.dump(_installed, f)
+    savechanges()
+
+
+def unmark_installed(package):
+    checkload()
+    global _installed
+    _installed = [pkg for pkg in _installed if pkg["name"] != package]
+    savechanges()
 
 
 def check_installed(candidate):

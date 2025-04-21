@@ -12,7 +12,7 @@ Path("~/.fluffpkg").expanduser().mkdir(parents=True, exist_ok=True)
 
 sourcesLib.load()
 
-# args = ["-l", "install", "cura"]  # DEBUG
+# args = ["remove", "cura"]  # DEBUG
 # args = ["-i", "list"]  # DEBUG
 args = sys.argv[1:]
 
@@ -34,13 +34,13 @@ if args["--path"]:
 
 if args["command"] == "install":
     if len(args["command_args"]) == 0:
-        print("Usage: fluffpkg install <package>")
+        print("Usage: fluffpkg install <packages...>")
         exit()
     for cmd_arg in args["command_args"]:
-        executable_name = cmd_arg
-        q = sourcesLib.query(executable_name)
+        package_name = cmd_arg
+        q = sourcesLib.query(package_name)
         if len(q) == 0:
-            print(f"Could not find installation candidate for {executable_name}")
+            print(f"Could not find installation candidate for {package_name}")
             exit()
         type_of_candidate = q[0]
         if type_of_candidate == "weak_recommend":
@@ -61,6 +61,20 @@ if args["command"] == "install":
                 nolauncher=args["--nolauncher"],
                 path=args["--path"],
             )
+elif args["command"] == "remove":
+    if len(args["command_args"]) == 0:
+        print("Usage: fluffpkg remove <packages...>")
+        exit()
+    for cmd_arg in args["command_args"]:
+        package_name = cmd_arg
+        q = manageInstalledLib.query(package_name)
+        if not q:
+            print(f"{package_name} is not installed.")
+            exit()
+        to_remove = q
+
+        if to_remove["module"] == "github-appimage":
+            modules.github_appimage.remove(to_remove)
 elif args["command"] == "list":
     if args["--installed"]:
         installed = manageInstalledLib.list()

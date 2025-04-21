@@ -22,19 +22,18 @@ Lists packages found in sources, or packages that are installed. Note that these
 
 ### upgrade
 
-usage: `fluffpkg upgrade packages...`<br/>
+usage: `fluffpkg upgrade <packages...>`<br/>
 If the package is installed, checks for upgrades and applies them<br/>
-NYI
 
 ### remove
 
-usage: `fluffpkg remove packages...`<br/>
+usage: `fluffpkg remove <packages...>`<br/>
 If the package is installed, uninstalls it<br/>
 NYI
 
 ### modify
 
-usage: `fluffpkg modify package [add-launcher, remove-launcher, add-path, remove-path, add-categories, remove-categories]`<br/>
+usage: `fluffpkg modify <package> [add-launcher, remove-launcher, add-path, remove-path, add-categories, remove-categories]`<br/>
 Applies the given modification<br/>
 NYI
 
@@ -46,12 +45,12 @@ NYI
 
  + add-github-appimage
 
- usage: `fluffpkg add-github-appimage owner/repo...`<br/>
+ usage: `fluffpkg add-github-appimage <owner/repo...>`<br/>
  Adds the given repo to the local sources
 
  + install-github-appimage
  
- usage: `fluffpkg install-github-appimage owner/repo...`<br/>
+ usage: `fluffpkg install-github-appimage <owner/repo...>`<br/>
  Adds the given repo to the local sources, and installs it
 
 #### Installation

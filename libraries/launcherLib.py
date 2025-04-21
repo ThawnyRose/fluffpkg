@@ -66,3 +66,14 @@ def add_launcher(package, name, executable, categories):
 
     if launcherSuccess:
         print("Launcher .desktop added")
+
+
+def remove_launcher(package):
+    launcherName = package + ".desktop"
+    launcherPath = (
+        Path("~/.fluffpkg/data/appimage/launcher/").expanduser() / launcherName
+    )
+    launcherDest = Path("~/.local/share/applications/").expanduser() / launcherName
+    launcherPath.unlink()
+    launcherDest.unlink()
+    print("Launcher .desktop removed")
