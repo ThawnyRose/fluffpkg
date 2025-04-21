@@ -12,7 +12,7 @@ def load():
     global _candidates, loaded
     loaded = True
     candidates = []
-    src_path = Path("~/.fluffpkg/source.lst").expanduser()
+    src_path = Path("~/.fluffpkg/sources.lst").expanduser()
     if src_path.exists():
         with open(src_path, "r") as f:
             sourcesText = f.read()

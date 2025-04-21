@@ -36,7 +36,7 @@ If the package is installed, uninstalls it<br/>
 usage: `fluffpkg modify <package> [add-launcher, remove-launcher, add-categories, remove-categories]`<br/>
 Applies the given modification<br/>
 
-## Modules
+## Included Modules
 
 ### github-appimage
 
@@ -56,5 +56,28 @@ Applies the given modification<br/>
 
 Uses Github's API to find the most recent release (not pre-release), then searches through the assets to find an appimage. If there are multiple, it tries to filter by system architecture.
 
+## Module API
+
+```
+# Example
+moduleLib.register(
+    "github-appimage",
+    {
+        "install": install,
+        "remove": remove,
+        "commands": {
+            "add-github-appimage": add_cmd,
+            "install-github-appimage": add_install_cmd,
+        },
+    },
+)
+```
+```
+install(candidate, nolauncher, path)
+remove(installation)
+command(args)
+```
+
 ## To-Do
- + Make module system better. Modules should hook in and add their own commands (As is done currently) and the main executable redirect by command suffix (i.e. '\*-github-appimage') to the module. The module should also hook into the argumentsLib for anything needed there as well.
+ + Upgrade
+ + Databases

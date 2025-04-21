@@ -125,6 +125,9 @@ def install(candidate, nolauncher, path):
 
 def add_cmd(args):
     for cmd_arg in args["command_args"]:
+        if "/" not in cmd_arg:
+            print("Github packages are formatted: owner/repo")
+            continue
         owner, repo = cmd_arg.split("/")
         add(owner, repo)
 
@@ -154,6 +157,9 @@ def add(owner, repo):
 
 def add_install_cmd(args):
     for cmd_arg in args["command_args"]:
+        if "/" not in cmd_arg:
+            print("Github packages are formatted: owner/repo")
+            continue
         owner, repo = cmd_arg.split("/")
         add_install(owner, repo, nolauncher=args["--nolauncher"], path=args["--path"])
 
