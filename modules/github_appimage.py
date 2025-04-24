@@ -1,5 +1,6 @@
 from pathlib import Path
 import requests
+from libraries.dataClasses import Installation, Candidate
 from libraries import manageInstalledLib
 from libraries import sourcesLib
 from libraries import launcherLib
@@ -11,7 +12,7 @@ import platform
 
 
 # https://stackoverflow.com/a/16696317
-def download_file(url, output=None, prettyname=""):
+def download_file(url: str, output: str | None = None, prettyname: str = "") -> str:
     timeMark = time.time() + 1
     print(f"Downloading '{prettyname}' .", end="", flush=True)
     local_filename = output if output is not None else url.split("/")[-1]
@@ -27,9 +28,8 @@ def download_file(url, output=None, prettyname=""):
     return local_filename
 
 
-def get_github_latest_release(url):
-    url = url.split("/")
-    owner, repo = url
+def get_github_latest_release(url: str) -> dict:
+    owner, repo = url.split("/")
     api_url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
     # print(api_url)
     response = requests.get(api_url)
@@ -37,6 +37,7 @@ def get_github_latest_release(url):
         print(
             f"Error: Failed to get GitHub releases: {response.status_code} - {response.text}"
         )
+        exit()
     release = response.json()
     # print(release["assets"])
     appimages = []
@@ -50,6 +51,8 @@ def get_github_latest_release(url):
         #     print(a["content_type"], a["name"])
 
     if len(appimages) == 0:
+        # import json
+        # print(json.dumps(release["assets"]))
         print("No release assets of content type 'appimage'")
         exit()
 
@@ -75,7 +78,7 @@ def get_github_latest_release(url):
     }
 
 
-def setup():
+def setup() -> None:
     Path("~/.fluffpkg/data/appimage/files/").expanduser().mkdir(
         parents=True, exist_ok=True
     )
@@ -84,20 +87,16 @@ def setup():
     )
 
 
-def install(candidate, nolauncher, path):
+def install(candidate: Candidate, nolauncher: bool, path: bool) -> None:
     if manageInstalledLib.check_installed(candidate):
         print(
-            f"Package '{candidate['package_name']}' is already installed. Try `upgrade`."
+            f"Package '{candidate.package_name}' is already installed. Try `upgrade`."
         )
         exit()
     setup()
-    assert candidate["module"] == "github-appimage"
-    if candidate["module_version"] != 0:
-        print(
-            f'Unknown module version {candidate["module_version"]} for module github-appimage'
-        )
+    assert candidate.module == "github-appimage"
     # print(candidate)
-    release = get_github_latest_release(candidate["download_url"])
+    release = get_github_latest_release(candidate.download_url)
     # print(release)
     url = release["Appimage"]["DownloadUrl"]
     name = release["Appimage"]["Name"]
@@ -108,22 +107,21 @@ def install(candidate, nolauncher, path):
         candidate,
         release["Tag"],
         str(outPath.resolve()),
-        candidate["categories"],
     )
-    print(f"{candidate['name']} successfully installed!")
+    print(f"{candidate.name} successfully installed!")
 
     if not nolauncher:
         launcherLib.add_launcher(
-            candidate["package_name"],
-            candidate["name"],
+            candidate.package_name,
+            candidate.name,
             outPath,
-            candidate["categories"],
+            candidate.categories,
         )
     if path:
         print(".appimage files aren't currently added to the path.")
 
 
-def add_cmd(args):
+def add_cmd(args: dict) -> None:
     for cmd_arg in args["command_args"]:
         if "/" not in cmd_arg:
             print("Github packages are formatted: owner/repo")
@@ -132,7 +130,7 @@ def add_cmd(args):
         add(owner, repo)
 
 
-def add(owner, repo):
+def add(owner: str, repo: str) -> Candidate:
     api_url = f"https://api.github.com/repos/{owner}/{repo}"
 
     response = requests.get(api_url)
@@ -140,22 +138,23 @@ def add(owner, repo):
         print(
             f"Error: Failed to get GitHub repository: {response.status_code} - {response.text}"
         )
+        exit()
     repository = response.json()
 
-    candidate = {
-        "module": "github-appimage",
-        "module_version": 0,
-        "name": repository["name"],
-        "package_name": repository["name"].replace(" ", "_").lower(),
-        "categories": ";",
-        "download_url": repository["full_name"],
-        "source": sourcesLib.defaultSource,
-    }
-    sourcesLib.add(candidate, checkExists=False)
+    candidate = Candidate(
+        "github-appimage",
+        repository["name"],
+        repository["name"].replace(" ", "_").lower(),
+        "[]",
+        "manual:_",
+        repository["full_name"],
+    )
+
+    sourcesLib.add_candidate(candidate, failExists=False)
     return candidate
 
 
-def add_install_cmd(args):
+def add_install_cmd(args: dict) -> None:
     for cmd_arg in args["command_args"]:
         if "/" not in cmd_arg:
             print("Github packages are formatted: owner/repo")
@@ -164,21 +163,28 @@ def add_install_cmd(args):
         add_install(owner, repo, nolauncher=args["--nolauncher"], path=args["--path"])
 
 
-def add_install(owner, repo, nolauncher=False, path=False):
+def add_install(
+    owner: str, repo: str, nolauncher: bool = False, path: bool = False
+) -> None:
     candidate = add(owner, repo)
     install(candidate, nolauncher, path)
 
 
-def remove(installation):
-    assert installation["module"] == "github-appimage"
-    pkg = installation["package_name"]
-    if installation["launcher"]:
+def remove_cmd(args: dict) -> None:
+    for package in args["command_args"]:
+        sourcesLib.remove_candidate(package)
+
+
+def remove(installation: Installation) -> None:
+    assert installation.module == "github-appimage"
+    package = installation.package_name
+    if installation.launcher:
         launcherLib.remove_launcher(
-            pkg,
+            package,
         )
-    appimage = Path(installation["executable_path"])
+    appimage = Path(installation.executable_path)
     appimage.unlink()
-    manageInstalledLib.unmark_installed(pkg)
+    manageInstalledLib.unmark_installed(package)
 
 
 moduleLib.register(
@@ -188,6 +194,7 @@ moduleLib.register(
         "remove": remove,
         "commands": {
             "add-github-appimage": add_cmd,
+            "remove-github-appimage": remove_cmd,
             "install-github-appimage": add_install_cmd,
         },
     },

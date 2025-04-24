@@ -11,7 +11,21 @@ import sys
 
 Path("~/.fluffpkg").expanduser().mkdir(parents=True, exist_ok=True)
 
-sourcesLib.load()
+# import sys
+# import traceback
+
+
+# class TracePrints(object):
+#     def __init__(self):
+#         self.stdout = sys.stdout
+
+#     def write(self, s):
+#         self.stdout.write("Writing %r\n" % s)
+#         traceback.print_stack(file=self.stdout)
+
+
+# sys.stdout = TracePrints()
+
 
 # args = ["remove", "cura"]  # DEBUG
 args = sys.argv[1:]
@@ -39,24 +53,26 @@ if args["command"] == "install":
     for cmd_arg in args["command_args"]:
         package_name = cmd_arg
         query = sourcesLib.query(package_name)
-        if len(query) == 0:
+        if type(query) is not sourcesLib.QueryResult:
             print(f"Could not find installation candidate for {package_name}")
             exit()
-        type_of_candidate = query[0]
-        if type_of_candidate == "weak_recommend":
-            names = [candidate["package_name"] for candidate in query[1]]
+        if query.kind == "weak_recommend":
+            names = [candidate.package_name for candidate in query.candidates]
             print("Some weak matches were found:", ", ".join(names))
             exit()
-        if type_of_candidate == "strong_recommend":
-            names = [candidate["package_name"] for candidate in query[1]]
+        if query.kind == "strong_recommend":
+            names = [candidate.package_name for candidate in query.candidates]
             print("Did you mean:", ", ".join(names))
             exit()
-        if type_of_candidate != "found":
-            print("Internal error:", "Unknown match type:", type_of_candidate)
+        if query.kind != "found":
+            print("Internal error:", "Unknown match type:", query.kind)
             exit()
-        to_install = query[1]
+
+        if len(query.candidates) != 1:
+            print(f"Multiple candidates were found: {query.candidates}")
+        to_install = query.candidates[0]
         moduleLib.install(
-            to_install["module"],
+            to_install.module,
             to_install,
             nolauncher=args["--nolauncher"],
             path=args["--path"],
@@ -68,10 +84,10 @@ elif args["command"] == "remove":
     for cmd_arg in args["command_args"]:
         package_name = cmd_arg
         install = manageInstalledLib.query(package_name)
-        if not install:
+        if install is None:
             print(f"{package_name} is not installed.")
             exit()
-        moduleLib.remove(install["module"], install)
+        moduleLib.remove(install.module, install)
 elif args["command"] == "list":
     if args["--installed"]:
         installed = manageInstalledLib.list()
@@ -80,13 +96,13 @@ elif args["command"] == "list":
         for install in installed:
             table_data.append(
                 [
-                    install["name"],
-                    install["version"],
-                    install["package_name"],
-                    install["launcher"],
-                    install["path"],
-                    install["module"],
-                    install["source"].split(" ", 1)[1],
+                    install.name,
+                    install.version,
+                    install.package_name,
+                    install.launcher,
+                    install.path,
+                    install.module,
+                    install.source,
                 ]
             )
         table = tabulate(
@@ -109,10 +125,10 @@ elif args["command"] == "list":
         for candidate in candidates:
             table_data.append(
                 [
-                    candidate["name"],
-                    candidate["package_name"],
-                    candidate["module"],
-                    candidate["source"].split(" ", 1)[1],
+                    candidate.name,
+                    candidate.package_name,
+                    candidate.module,
+                    candidate.source.kind + " " + candidate.source.url,
                 ]
             )
         table = tabulate(
@@ -141,7 +157,7 @@ elif args["command"] == "modify":
         if len(args["command_args"]) != 2:
             print("Usage: fluffpkg modify <package> add-launcher")
             exit()
-        launcherLib.add_launcher_later(package)
+        launcherLib.add_launcher_later(package, args["--force"])
     elif field == "remove-launcher":
         if len(args["command_args"]) != 2:
             print("Usage: fluffpkg modify <package> remove-launcher")

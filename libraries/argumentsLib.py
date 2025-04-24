@@ -9,6 +9,7 @@ arguments = [
     # (None, "--launcher", "Install .desktop files to ~/.local/share/applications/"),
     ("-p", "--path", "Add executable to path (NYI)"),
     ("-i", "--installed", "Only list installed packages"),
+    ("-f", "--force", "Force a command, overrides some protections"),
     # ("-y", "--notinteractive", "Don't use any interactive prompts, assume defaults"),
     # ("-m", "--module", "Specify which module to use"),
 ]
@@ -23,7 +24,7 @@ commandLength = {  # Defaults to 'All', so those aren't listed
 }
 
 
-def print_help():
+def print_help() -> None:
     print(program_usage)
     print(program_desc)
     print(f"Commands: {', '.join(builtin_commands + moduleLib.commandNames())}")
@@ -32,7 +33,7 @@ def print_help():
         print(f"\t{i}")
 
 
-def parse_args(args):
+def parse_args(args: list[str]) -> dict:
     o_args = args
     args = [x.lower() for x in args]
 
@@ -76,7 +77,7 @@ def parse_args(args):
 
         if this_arg == "":
             print(f"Unknown Command: {a}")
-            return False
+            exit()
 
         # print(this_arg)
         output[this_arg] = this_val

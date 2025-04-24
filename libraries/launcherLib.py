@@ -2,8 +2,8 @@ from pathlib import Path
 from libraries import manageInstalledLib
 
 
-def add_categories(package, new_categories):
-    if type(new_categories) is str:
+def add_categories(package: str, new_categories: str | list[str]) -> None:
+    if isinstance(new_categories, str):
         if ";" in new_categories:
             new_categories = new_categories.split(";")
         else:
@@ -13,7 +13,7 @@ def add_categories(package, new_categories):
     if not install:
         print("Could not update launcher, package not installed")
         exit()
-    if not install["launcher"]:
+    if not install.launcher:
         print("Could not update launcher, package does not have launcher")
         exit()
 
@@ -42,8 +42,8 @@ def add_categories(package, new_categories):
     print("Categories Added")
 
 
-def remove_categories(package, new_categories):
-    if type(new_categories) is str:
+def remove_categories(package: str, new_categories: str | list[str]) -> None:
+    if isinstance(new_categories, str):
         if ";" in new_categories:
             new_categories = new_categories.split(";")
         else:
@@ -53,7 +53,7 @@ def remove_categories(package, new_categories):
     if not install:
         print("Could not update launcher, package not installed")
         exit()
-    if not install["launcher"]:
+    if not install.launcher:
         print("Could not update launcher, package does not have launcher")
         exit()
 
@@ -82,9 +82,15 @@ def remove_categories(package, new_categories):
     print("Categories Removed")
 
 
-def add_launcher(package, name, executable, categories):
-    if type(categories) is list:
-        categories = ";".join(categories)
+def add_launcher(
+    package: str,
+    name: str,
+    executable: str,
+    categories: list[str] | str,
+    force: bool = False,
+) -> None:
+    if isinstance(categories, list):
+        categories = ";".join(categories) + ";"
 
     launcherName = package + ".desktop"
     launcherPath = (
@@ -102,31 +108,38 @@ def add_launcher(package, name, executable, categories):
     try:
         launcherDest.symlink_to(launcherPath)
     except FileExistsError:
-        print(f"Warning: file exists, failed to sync launcher file. {launcherDest}")
-        launcherSuccess = False
+        if force:
+            launcherDest.unlink()
+            launcherDest.symlink_to(launcherPath)
+        else:
+            print(
+                f"Warning: file exists, failed to sync launcher file. Use --force to override.\n{launcherDest}"
+            )
+            launcherSuccess = False
 
     if launcherSuccess:
         print("Launcher .desktop added")
+        manageInstalledLib.mark_attribute(package, "launcher", True)
 
 
-def add_launcher_later(package):
+def add_launcher_later(package: str, force: bool = False) -> None:
     install = manageInstalledLib.query(package)
     if not install:
         print("Could not add launcher, package not installed")
         exit()
-    if install["launcher"]:
+    if install.launcher:
         print("Could not add launcher, package already has launcher")
         exit()
     add_launcher(
         package,
-        install["name"],
-        install["executable_path"],
-        install.get("categories", []),
+        install.name,
+        install.executable_path,
+        install.categories,
+        force,
     )
-    manageInstalledLib.mark_attribute(package, "launcher", True)
 
 
-def remove_launcher(package):
+def remove_launcher(package: str) -> None:
     launcherName = package + ".desktop"
     launcherPath = (
         Path("~/.fluffpkg/data/appimage/launcher/").expanduser() / launcherName
