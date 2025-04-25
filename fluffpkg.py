@@ -46,19 +46,11 @@ args = argumentsLib.parse_args(args)
 if not args:
     exit()
 
-if args["--help"]:
-    argumentsLib.print_help()
+if args["command"] == "help":
+    argumentsLib.print_help(args["command_help"])
     exit()
-
-if args["--path"]:
-    print("Warning: '--path' not yet implemented")
-
 if args["command"] == "install":
-    if len(args["command_args"]) == 0:
-        print("Usage: fluffpkg install <packages...>")
-        exit()
-    for cmd_arg in args["command_args"]:
-        package_name = cmd_arg
+    for package_name in args["packages"]:
         query = sourcesLib.query(package_name)
         if type(query) is not sourcesLib.QueryResult:
             print(f"Could not find installation candidate for {package_name}")
@@ -85,17 +77,14 @@ if args["command"] == "install":
             args,
         )
 elif args["command"] == "remove":
-    if len(args["command_args"]) == 0:
-        print("Usage: fluffpkg remove <packages...>")
-        exit()
-    for package_name in args["command_args"]:
+    for package_name in args["packages"]:
         install = manageInstalledLib.query(package_name)
         if install is None:
             print(f"{package_name} is not installed.")
             exit()
         moduleLib.remove(install.module, install, args)
 elif args["command"] == "upgrade":
-    if len(args["command_args"]) == 0:
+    if len(args["packages"]) == 0:
         print("Upgrading all packages")
         installed = manageInstalledLib.list()
         max_name_len = max(len(i.name) for i in installed)
@@ -116,8 +105,7 @@ elif args["command"] == "upgrade":
                 )
     else:
         packages = [
-            (package, manageInstalledLib.query(package))
-            for package in args["command_args"]
+            (package, manageInstalledLib.query(package)) for package in args["packages"]
         ]
         for package, install in packages:
             if install is None:
@@ -125,10 +113,7 @@ elif args["command"] == "upgrade":
                 exit()
             moduleLib.upgrade(install.module, install, args)
 elif args["command"] == "versions":
-    if len(args["command_args"]) == 0:
-        raise UsageError("versions <package>")
-
-    package_name = args["command_args"][0]
+    package_name = args["package"]
     install = manageInstalledLib.query(package_name)
     if install is None:
         print(f"{package_name} is not installed.")
@@ -138,12 +123,6 @@ elif args["command"] == "versions":
         exit()
 
     moduleLib.versions(install.module, install, args)
-    # for package_name in args["command_args"]:
-    #     install = manageInstalledLib.query(package_name)
-    #     if install is None:
-    #         print(f"{package_name} is not installed.")
-    #         exit()
-    #     moduleLib.remove(install.module, install, args)
 elif args["command"] == "list":
     if args["--installed"]:
         installed = manageInstalledLib.list()
@@ -192,35 +171,20 @@ elif args["command"] == "list":
         )
         print(table)
 elif args["command"] == "modify":
-    if len(args["command_args"]) <= 1:
-        print("Usage: fluffpkg modify <package> <field> [values...]")
-        exit()
-    package = args["command_args"][0]
-    field = args["command_args"][1]
-    if field == "add-categories":
-        if len(args["command_args"]) <= 2:
-            print("Usage: fluffpkg modify <package> add-categories <categories>")
-            exit()
-        new_categories = args["command_args"][2:]
+    package = args["package"]
+    attribute = args["attribute"]["command"]
+    if attribute == "add-categories":
+        new_categories = args["attribute"]["categories"]
         launcherLib.add_categories(package, new_categories)
-    elif field == "remove-categories":
-        if len(args["command_args"]) <= 2:
-            print("Usage: fluffpkg modify <package> remove-categories <categories>")
-            exit()
-        new_categories = args["command_args"][2:]
+    elif attribute == "remove-categories":
+        new_categories = args["attribute"]["categories"]
         launcherLib.remove_categories(package, new_categories)
-    elif field == "add-launcher":
-        if len(args["command_args"]) != 2:
-            print("Usage: fluffpkg modify <package> add-launcher")
-            exit()
-        launcherLib.add_launcher_later(package, args["--force"])
-    elif field == "remove-launcher":
-        if len(args["command_args"]) != 2:
-            print("Usage: fluffpkg modify <package> remove-launcher")
-            exit()
+    elif attribute == "add-launcher":
+        launcherLib.add_launcher_later(package, args["attribute"]["--force"])
+    elif attribute == "remove-launcher":
         launcherLib.remove_launcher(package)
     else:
-        print(f"Unknown modification {field}")
+        print(f"Unknown modification {attribute}")
 elif args["command"] in moduleLib.commandNames():
     moduleLib.command(args["command"], args)
 else:

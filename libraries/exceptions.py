@@ -44,6 +44,11 @@ class SpecificVersion(SilentException):
         )
 
 
+class UnknownCommand(SilentException):
+    def __init__(self, command: str):
+        super().__init__(f"Unknown Command: {command}")
+
+
 # Custom exception hook
 def handle_uncaught(exc_type, exc_value, traceback):
     if isinstance(exc_value, SilentException):

@@ -1,5 +1,8 @@
 # Fluffpkg
-The Fluffy Multipurpose Package Installer :3
+
+The Fluffy, Multipurpose Package Manager :3
+
+---
 
 Woah, a package manager!
 This is mostly just a fun project to play around, though I will likely use myself to simplify installations.
@@ -12,29 +15,45 @@ I run Debian, and that is where my testing is done. If you encounter any errors,
 
 ### install
 
-usage: `fluffpkg install \[--nolauncher\] \[--path\] packages...`<br/>
+`usage: fluffpkg install [--nolauncher] [--path] <packages...>`
+
+
 Searches through local sources for packages to install them.
 
 ### list
 
-usage: `fluffpkg list \[--installed\]`<br/>
+`usage: fluffpkg list \[--installed\]`
+
+
 Lists packages found in sources, or packages that are installed. Note that these come from different databases, and there's no guarantee an installed package is in the sources, or the other way round.
 
 ### upgrade
 
-usage: `fluffpkg upgrade <packages...>`<br/>
-If the package is installed, checks for upgrades and applies them<br/>
+`usage: fluffpkg upgrade <packages...>`
+
+
+If the package is installed, checks for upgrades and applies them
+
+
 NYI
 
 ### remove
 
-usage: `fluffpkg remove <packages...>`<br/>
-If the package is installed, uninstalls it<br/>
+`usage: fluffpkg remove <packages...>`
+
+
+If the package is installed, uninstalls it
+
+
 
 ### modify
 
-usage: `fluffpkg modify <package> [add-launcher, remove-launcher, add-categories, remove-categories]`<br/>
-Applies the given modification<br/>
+`usage: fluffpkg modify <package> [add-launcher, remove-launcher, add-categories, remove-categories]`
+
+
+Applies the given modification
+
+
 
 ## Included Modules
 
@@ -42,15 +61,19 @@ Applies the given modification<br/>
 
 #### Provided Commands
 
- + add-github-appimage
++ add-github-appimage
+  
+  `usage: fluffpkg add-github-appimage <owner/repo...>`
+  
+  
+  Adds the given repo to the local sources
 
- usage: `fluffpkg add-github-appimage <owner/repo...>`<br/>
- Adds the given repo to the local sources
-
- + install-github-appimage
- 
- usage: `fluffpkg install-github-appimage <owner/repo...>`<br/>
- Adds the given repo to the local sources, and installs it
++ install-github-appimage
+  
+  `usage: fluffpkg install-github-appimage <owner/repo...>`
+  
+  
+  Adds the given repo to the local sources, and installs it
 
 #### Installation
 
@@ -72,6 +95,7 @@ moduleLib.register(
     },
 )
 ```
+
 ```
 install(candidate, nolauncher, path)
 remove(installation)
@@ -79,6 +103,7 @@ command(args)
 ```
 
 ## To-Do
- + .deb sources
- + Better format help
- + Better docs
+
++ .deb sources
++ Better format help
++ Better docs
