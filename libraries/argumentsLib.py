@@ -1,4 +1,3 @@
-import builtins
 from tabulate import tabulate
 import sys
 
@@ -196,9 +195,10 @@ def help_all_cmds(commandList) -> str:
 def print_help(command_name: str | None = None) -> None:
     if command_name is not None:
         print(help_cmd(command_name))
-    print(program_desc)
-    print("Available commands:")
-    print(help_all_cmds(builtin_commands))
+    else:
+        print(program_desc)
+        print("Available commands:")
+        print(help_all_cmds(builtin_commands))
 
 
 def parse_args(cmd_args: list[str], commandList=builtin_commands) -> dict:
