@@ -41,11 +41,12 @@ class value_arg(arg):
 
 
 class pos_arg(arg):
-    def __init__(self, name: str):
+    def __init__(self, name: str, optional: bool = False):
         self.name = name
+        self.optional = optional
 
     def usage(self) -> str:
-        return f"<{self.name}>"
+        return f"[{self.name}]" if self.optional else f"<{self.name}>"
 
 
 class pos_args(arg):
@@ -56,7 +57,7 @@ class pos_args(arg):
         self.optional = optional
 
     def usage(self) -> str:
-        return f"<{self.name}...>"
+        return f"[{self.name}...]" if self.optional else f"<{self.name}...>"
 
 
 class command:
@@ -87,7 +88,7 @@ builtin_commands: list[command] = [
         "help",
         "Gives usage for each command",
         [
-            pos_arg("help_command"),
+            pos_arg("command_help", optional=True),
         ],
     ),
     command(
@@ -268,9 +269,9 @@ def parse_args(cmd_args: list[str], commandList=builtin_commands) -> dict:
         if done:
             continue
 
-        for f in values:
-            if arg == f.name or arg == f.short:
-                f.value = cmd_args[i + 1]
+        for v in values:
+            if arg == v.name or arg == v.short:
+                v.value = cmd_args[i + 1]
                 done = True
                 skip_next = 1
         if done:
@@ -316,10 +317,11 @@ def parse_args(cmd_args: list[str], commandList=builtin_commands) -> dict:
         exit()
 
     for p in positionals:
-        # if not p.optional:
-        print(f"Missing argument '{p.name}'")
-        print(help_cmd(command.name, commandList))
-        exit()
+        if not p.optional:
+            print(f"Missing argument '{p.name}'")
+            print(help_cmd(command.name, commandList))
+            exit()
+        output[p.name] = None
 
     for i in flags + values:
         if i.value is not None:
