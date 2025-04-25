@@ -14,12 +14,16 @@ def register(module: str, funcs: dict) -> None:
     _COMMANDS = {**_COMMANDS, **(funcs.get("commands", {}))}
 
 
-def install(module: str, candidate: Candidate, nolauncher=False, path=False) -> None:
-    _API_LIST[module]["install"](candidate, nolauncher, path)
+def install(module: str, candidate: Candidate, cmd_args: dict):
+    _API_LIST[module]["install"](candidate, cmd_args)
 
 
-def remove(module: str, installation: Installation) -> None:
+def remove(module: str, installation: Installation, cmd_args: dict) -> None:
     _API_LIST[module]["remove"](installation)
+
+
+def upgrade(module: str, installation: Installation, cmd_args: dict) -> None:
+    _API_LIST[module]["upgrade"](installation, cmd_args)
 
 
 def commandNames() -> list[str]:

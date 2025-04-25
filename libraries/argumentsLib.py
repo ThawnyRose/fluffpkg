@@ -12,10 +12,11 @@ arguments = [
     ("-f", "--force", "Force a command, overrides some protections"),
     # ("-y", "--notinteractive", "Don't use any interactive prompts, assume defaults"),
     # ("-m", "--module", "Specify which module to use"),
+    ("-v", "--version", "Specify a version for installation"),
 ]
 
-value_arguments = []
-# value_arguments = ["--module"]
+# value_arguments = []
+value_arguments = ["--version"]
 
 builtin_commands = ["install", "list", "upgrade", "modify", "remove"]
 

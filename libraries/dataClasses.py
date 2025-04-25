@@ -25,6 +25,7 @@ class Installation:
         source: Source | str,
         executable_path: str,
         categories: list[str] | str,
+        version_locked: bool,
     ):
         self.name = name
         self.version = version
@@ -39,6 +40,7 @@ class Installation:
         self.categories = (
             json.loads(categories) if isinstance(categories, str) else categories
         )
+        self.version_locked = version_locked
 
 
 class Candidate:

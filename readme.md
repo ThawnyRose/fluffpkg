@@ -79,5 +79,8 @@ command(args)
 ```
 
 ## To-Do
- + Upgrade
  + .deb sources
+ + Install Version
+ + Version Hold (Unless force)
+ + Better format help
+ + List version of a certain file that you can install

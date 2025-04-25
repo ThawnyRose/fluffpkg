@@ -7,6 +7,12 @@ from libraries import launcherLib
 import modules
 from libraries import moduleLib
 from libraries import argumentsLib
+from libraries.exceptions import (
+    AlreadyNewest,
+    InternalError,
+    MultipleCandidates,
+    SpecificVersion,
+)
 import sys
 
 Path("~/.fluffpkg").expanduser().mkdir(parents=True, exist_ok=True)
@@ -65,29 +71,58 @@ if args["command"] == "install":
             print("Did you mean:", ", ".join(names))
             exit()
         if query.kind != "found":
-            print("Internal error:", "Unknown match type:", query.kind)
-            exit()
+            raise InternalError("Unknown match type: " + query.kind)
 
         if len(query.candidates) != 1:
-            print(f"Multiple candidates were found: {query.candidates}")
+            raise MultipleCandidates()
+            # print(f"Multiple candidates were found: {query.candidates}")
+
         to_install = query.candidates[0]
         moduleLib.install(
             to_install.module,
             to_install,
-            nolauncher=args["--nolauncher"],
-            path=args["--path"],
+            args,
         )
 elif args["command"] == "remove":
     if len(args["command_args"]) == 0:
         print("Usage: fluffpkg remove <packages...>")
         exit()
-    for cmd_arg in args["command_args"]:
-        package_name = cmd_arg
+    for package_name in args["command_args"]:
         install = manageInstalledLib.query(package_name)
         if install is None:
             print(f"{package_name} is not installed.")
             exit()
-        moduleLib.remove(install.module, install)
+        moduleLib.remove(install.module, install, args)
+elif args["command"] == "upgrade":
+    if len(args["command_args"]) == 0:
+        print("Upgrading all packages")
+        installed = manageInstalledLib.list()
+        max_name_len = max(len(i.name) for i in installed)
+        for install in installed:
+            try:
+                moduleLib.upgrade(install.module, install, args)
+            except AlreadyNewest:
+                print(
+                    f"Skipping {install.package_name},",
+                    " " * (max_name_len - len(install.package_name)),
+                    "already newest",
+                )
+            except SpecificVersion:
+                print(
+                    f"Skipping {install.package_name},",
+                    " " * (max_name_len - len(install.package_name)),
+                    "specific version",
+                )
+    else:
+        packages = [
+            (package, manageInstalledLib.query(package))
+            for package in args["command_args"]
+        ]
+        for package, install in packages:
+            if install is None:
+                print(f"{package} is not installed.")
+                exit()
+            moduleLib.upgrade(install.module, install, args)
 elif args["command"] == "list":
     if args["--installed"]:
         installed = manageInstalledLib.list()
@@ -97,7 +132,7 @@ elif args["command"] == "list":
             table_data.append(
                 [
                     install.name,
-                    install.version,
+                    install.version + (" [L]" if install.version_locked else ""),
                     install.package_name,
                     install.launcher,
                     install.path,
@@ -168,5 +203,4 @@ elif args["command"] == "modify":
 elif args["command"] in moduleLib.commandNames():
     moduleLib.command(args["command"], args)
 else:
-    print("Internal error:", "Unknown command:", args["command"])
-    exit()
+    raise InternalError("Unknown command: " + args["command"])

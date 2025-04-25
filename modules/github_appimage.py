@@ -1,6 +1,13 @@
 from pathlib import Path
 import requests
 from libraries.dataClasses import Installation, Candidate
+from libraries.exceptions import (
+    AlreadyNewest,
+    MultipleCandidates,
+    NoCandidate,
+    SpecificVersion,
+    AlreadyInstalled,
+)
 from libraries import manageInstalledLib
 from libraries import sourcesLib
 from libraries import launcherLib
@@ -28,10 +35,7 @@ def download_file(url: str, output: str | None = None, prettyname: str = "") -> 
     return local_filename
 
 
-def get_github_latest_release(url: str) -> dict:
-    owner, repo = url.split("/")
-    api_url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
-    # print(api_url)
+def get_github_release(api_url: str) -> dict:
     response = requests.get(api_url)
     if response.status_code != 200:
         print(
@@ -58,7 +62,7 @@ def get_github_latest_release(url: str) -> dict:
 
     if len(appimages) != 1:
         arch = platform.machine()
-        print(f"Warning: multiple appimages found. Filtering by architecture: {arch}")
+        # print(f"Warning: multiple appimages found. Filtering by architecture: {arch}")
         f_appimages = [a for a in appimages if arch in a["name"]]
         if len(f_appimages) != 1:
             print("Failed to find a unique appimage.")
@@ -78,6 +82,18 @@ def get_github_latest_release(url: str) -> dict:
     }
 
 
+def get_github_by_tag(url: str, tag: str) -> dict:
+    owner, repo = url.split("/")
+    api_url = f"https://api.github.com/repos/{owner}/{repo}/releases/tags/{tag}"
+    return get_github_release(api_url)
+
+
+def get_github_latest_release(url: str) -> dict:
+    owner, repo = url.split("/")
+    api_url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
+    return get_github_release(api_url)
+
+
 def setup() -> None:
     Path("~/.fluffpkg/data/appimage/files/").expanduser().mkdir(
         parents=True, exist_ok=True
@@ -87,16 +103,32 @@ def setup() -> None:
     )
 
 
-def install(candidate: Candidate, nolauncher: bool, path: bool) -> None:
-    if manageInstalledLib.check_installed(candidate):
-        print(
-            f"Package '{candidate.package_name}' is already installed. Try `upgrade`."
-        )
-        exit()
+def install_cmd(candidate: Candidate, cmd_args: dict) -> None:
+    install(
+        candidate, cmd_args["--nolauncher"], cmd_args["--path"], cmd_args["--version"]
+    )
+
+
+def install(
+    candidate: Candidate,
+    nolauncher: bool = True,
+    path: bool = False,
+    version: str | bool = False,
+    upgrade=False,
+) -> None:
+    # print(cmd_args["--version"])
+    # exit()
+    if manageInstalledLib.check_installed(candidate) and not upgrade:
+        raise AlreadyInstalled(candidate.package_name)
     setup()
     assert candidate.module == "github-appimage"
     # print(candidate)
-    release = get_github_latest_release(candidate.download_url)
+    if not version or isinstance(version, bool):
+        release = get_github_latest_release(candidate.download_url)
+        version_locked = False
+    else:
+        release = get_github_by_tag(candidate.download_url, version)
+        version_locked = True
     # print(release)
     url = release["Appimage"]["DownloadUrl"]
     name = release["Appimage"]["Name"]
@@ -104,9 +136,7 @@ def install(candidate: Candidate, nolauncher: bool, path: bool) -> None:
     download_file(url, output=outPath, prettyname=name)
     os.chmod(outPath, os.stat(outPath).st_mode | stat.S_IXUSR | stat.S_IXGRP)
     manageInstalledLib.mark_installed(
-        candidate,
-        release["Tag"],
-        str(outPath.resolve()),
+        candidate, release["Tag"], str(outPath.resolve()), version_locked=version_locked
     )
     print(f"{candidate.name} successfully installed!")
 
@@ -118,11 +148,11 @@ def install(candidate: Candidate, nolauncher: bool, path: bool) -> None:
             candidate.categories,
         )
     if path:
-        print(".appimage files aren't currently added to the path.")
+        print(".appimage files aren't currently added to the path")
 
 
-def add_cmd(args: dict) -> None:
-    for cmd_arg in args["command_args"]:
+def add_cmd(cmd_args: dict) -> None:
+    for cmd_arg in cmd_args["command_args"]:
         if "/" not in cmd_arg:
             print("Github packages are formatted: owner/repo")
             continue
@@ -154,13 +184,15 @@ def add(owner: str, repo: str) -> Candidate:
     return candidate
 
 
-def add_install_cmd(args: dict) -> None:
-    for cmd_arg in args["command_args"]:
+def add_install_cmd(cmd_args: dict) -> None:
+    for cmd_arg in cmd_args["command_args"]:
         if "/" not in cmd_arg:
             print("Github packages are formatted: owner/repo")
             continue
         owner, repo = cmd_arg.split("/")
-        add_install(owner, repo, nolauncher=args["--nolauncher"], path=args["--path"])
+        add_install(
+            owner, repo, nolauncher=cmd_args["--nolauncher"], path=cmd_args["--path"]
+        )
 
 
 def add_install(
@@ -170,12 +202,12 @@ def add_install(
     install(candidate, nolauncher, path)
 
 
-def remove_cmd(args: dict) -> None:
-    for package in args["command_args"]:
+def remove_cmd(cmd_args: dict) -> None:
+    for package in cmd_args["command_args"]:
         sourcesLib.remove_candidate(package)
 
 
-def remove(installation: Installation) -> None:
+def remove(installation: Installation, upgrade: bool = False) -> None:
     assert installation.module == "github-appimage"
     package = installation.package_name
     if installation.launcher:
@@ -185,13 +217,46 @@ def remove(installation: Installation) -> None:
     appimage = Path(installation.executable_path)
     appimage.unlink()
     manageInstalledLib.unmark_installed(package)
+    print(f"{package} successfully removed")
+
+
+def upgrade_cmd(installation: Installation, args: dict) -> None:
+    upgrade(installation, args["--force"])
+
+
+def upgrade(installation: Installation, force: bool = False) -> None:
+    # print(installation.package_name)
+    # print(installation.version)
+
+    if installation.version_locked and not force:
+        raise SpecificVersion()
+
+    original_source = sourcesLib.query(installation.package_name)
+    # if isinstance(original_source, type(None)):
+    if original_source is None:
+        raise NoCandidate()
+    if len(original_source.candidates) != 1:
+        candidates = [
+            c for c in original_source.candidates if c.source == "github-appimage"
+        ]
+        if len(candidates) != 1:
+            raise MultipleCandidates()
+        candidate = candidates[0]
+    else:
+        candidate = original_source.candidates[0]
+    new_version = get_github_latest_release(candidate.download_url)["Tag"]
+    if new_version == installation.version:
+        raise AlreadyNewest(installation.package_name)
+    remove(installation, upgrade=True)
+    install(candidate, not installation.launcher, installation.path, upgrade=True)
 
 
 moduleLib.register(
     "github-appimage",
     {
-        "install": install,
+        "install": install_cmd,
         "remove": remove,
+        "upgrade": upgrade_cmd,
         "commands": {
             "add-github-appimage": add_cmd,
             "remove-github-appimage": remove_cmd,
