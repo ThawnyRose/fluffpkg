@@ -26,9 +26,17 @@ def upgrade(module: str, installation: Installation, cmd_args: dict) -> None:
     _API_LIST[module]["upgrade"](installation, cmd_args)
 
 
+def versions(module: str, installation: Installation, cmd_args: dict) -> None:
+    _API_LIST[module]["versions"](installation, cmd_args)
+
+
+def hasCommand(module: str, command: str) -> bool:
+    return command in _API_LIST[module].keys()
+
+
 def commandNames() -> list[str]:
     return list(_COMMANDS.keys())
 
 
-def command(module: str, cmd_args: dict) -> None:
-    _COMMANDS[module](cmd_args)
+def command(command: str, cmd_args: dict) -> None:
+    _COMMANDS[command](cmd_args)

@@ -2,6 +2,10 @@ from pathlib import Path
 import sqlite3
 import json
 
+from libraries.exceptions import (
+    MultipleCandidates,
+    NoCandidate,
+)
 from libraries.dataClasses import Candidate, QueryResult
 from libraries import manageInstalledLib
 
@@ -33,6 +37,23 @@ CREATE TABLE IF NOT EXISTS sources (
 """
 )
 conn.commit()
+
+
+def get_source(package: str) -> Candidate:
+    original_source = query(package)
+    # if isinstance(original_source, type(None)):
+    if original_source is None:
+        raise NoCandidate()
+    if len(original_source.candidates) != 1:
+        candidates = [
+            c for c in original_source.candidates if c.source == "github-appimage"
+        ]
+        if len(candidates) != 1:
+            raise MultipleCandidates()
+        candidate = candidates[0]
+    else:
+        candidate = original_source.candidates[0]
+    return candidate
 
 
 def query(package: str) -> None | QueryResult:

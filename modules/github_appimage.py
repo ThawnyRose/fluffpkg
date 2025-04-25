@@ -3,8 +3,6 @@ import requests
 from libraries.dataClasses import Installation, Candidate
 from libraries.exceptions import (
     AlreadyNewest,
-    MultipleCandidates,
-    NoCandidate,
     SpecificVersion,
     AlreadyInstalled,
 )
@@ -231,24 +229,69 @@ def upgrade(installation: Installation, force: bool = False) -> None:
     if installation.version_locked and not force:
         raise SpecificVersion()
 
-    original_source = sourcesLib.query(installation.package_name)
-    # if isinstance(original_source, type(None)):
-    if original_source is None:
-        raise NoCandidate()
-    if len(original_source.candidates) != 1:
-        candidates = [
-            c for c in original_source.candidates if c.source == "github-appimage"
-        ]
-        if len(candidates) != 1:
-            raise MultipleCandidates()
-        candidate = candidates[0]
-    else:
-        candidate = original_source.candidates[0]
+    candidate = sourcesLib.get_source(installation.package_name)
+
     new_version = get_github_latest_release(candidate.download_url)["Tag"]
     if new_version == installation.version:
         raise AlreadyNewest(installation.package_name)
     remove(installation, upgrade=True)
     install(candidate, not installation.launcher, installation.path, upgrade=True)
+
+
+def versions_cmd(installation: Installation, args: dict) -> None:
+    versions(installation)
+
+
+def versions(installation: Installation) -> None:
+    candidate = sourcesLib.get_source(installation.package_name)
+    owner, repo = candidate.download_url.split("/", 1)
+    api_url = f"https://api.github.com/repos/{owner}/{repo}/tags"
+
+    response = requests.get(api_url)
+    if response.status_code != 200:
+        print(
+            f"Error: Failed to get GitHub tags: {response.status_code} - {response.text}"
+        )
+        exit()
+    tags = response.json()
+    print("\n".join(t["name"] for t in tags))
+    # print(release["assets"])
+    # appimages = []
+    # for a in release["assets"]:
+    #     # print(f"{a['name']}, {a['content_type']}, {a['browser_download_url']}")
+    #     if a["content_type"] == "application/vnd.appimage" or a[
+    #         "name"
+    #     ].lower().endswith(".appimage"):
+    #         appimages.append(a)
+    #     # else:
+    #     #     print(a["content_type"], a["name"])
+
+    # if len(appimages) == 0:
+    #     # import json
+    #     # print(json.dumps(release["assets"]))
+    #     print("No release assets of content type 'appimage'")
+    #     exit()
+
+    # if len(appimages) != 1:
+    #     arch = platform.machine()
+    #     # print(f"Warning: multiple appimages found. Filtering by architecture: {arch}")
+    #     f_appimages = [a for a in appimages if arch in a["name"]]
+    #     if len(f_appimages) != 1:
+    #         print("Failed to find a unique appimage.")
+    #         exit()
+
+    #     appimages = f_appimages
+
+    # appimage = appimages[0]
+
+    # return {
+    #     "Tag": release["tag_name"],
+    #     "Name": release["name"],
+    #     "Appimage": {
+    #         "Name": appimage["name"],
+    #         "DownloadUrl": appimage["browser_download_url"],
+    #     },
+    # }
 
 
 moduleLib.register(
@@ -257,6 +300,7 @@ moduleLib.register(
         "install": install_cmd,
         "remove": remove,
         "upgrade": upgrade_cmd,
+        "versions": versions_cmd,
         "commands": {
             "add-github-appimage": add_cmd,
             "remove-github-appimage": remove_cmd,

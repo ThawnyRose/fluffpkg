@@ -12,6 +12,7 @@ from libraries.exceptions import (
     InternalError,
     MultipleCandidates,
     SpecificVersion,
+    UsageError,
 )
 import sys
 
@@ -123,6 +124,26 @@ elif args["command"] == "upgrade":
                 print(f"{package} is not installed.")
                 exit()
             moduleLib.upgrade(install.module, install, args)
+elif args["command"] == "versions":
+    if len(args["command_args"]) == 0:
+        raise UsageError("versions <package>")
+
+    package_name = args["command_args"][0]
+    install = manageInstalledLib.query(package_name)
+    if install is None:
+        print(f"{package_name} is not installed.")
+        exit()
+    if not moduleLib.hasCommand(install.module, "versions"):
+        print(f"Module {install.module} does not support getting available versions")
+        exit()
+
+    moduleLib.versions(install.module, install, args)
+    # for package_name in args["command_args"]:
+    #     install = manageInstalledLib.query(package_name)
+    #     if install is None:
+    #         print(f"{package_name} is not installed.")
+    #         exit()
+    #     moduleLib.remove(install.module, install, args)
 elif args["command"] == "list":
     if args["--installed"]:
         installed = manageInstalledLib.list()

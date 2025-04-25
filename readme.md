@@ -80,7 +80,5 @@ command(args)
 
 ## To-Do
  + .deb sources
- + Install Version
- + Version Hold (Unless force)
  + Better format help
- + List version of a certain file that you can install
+ + Better docs

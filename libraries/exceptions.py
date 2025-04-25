@@ -1,5 +1,4 @@
 import sys
-from typing import Sized
 
 
 class SilentException(Exception):
@@ -11,6 +10,11 @@ class SilentException(Exception):
 class InternalError(SilentException):
     def __init__(self, message: str):
         super().__init__(f"Internal Error: {message}")
+
+
+class UsageError(SilentException):
+    def __init__(self, message: str):
+        super().__init__(f"Usage: fluffpkg {message}")
 
 
 class AlreadyInstalled(SilentException):

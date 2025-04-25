@@ -18,10 +18,11 @@ arguments = [
 # value_arguments = []
 value_arguments = ["--version"]
 
-builtin_commands = ["install", "list", "upgrade", "modify", "remove"]
+builtin_commands = ["install", "list", "upgrade", "modify", "remove", "versions"]
 
 commandLength = {  # Defaults to 'All', so those aren't listed
     "list": "None",
+    "versions": 1,
 }
 
 
@@ -73,7 +74,11 @@ def parse_args(args: list[str]) -> dict:
                     output["command_args"] = o_args[i + 1 :]
                     skip_next = True
                     continue
-                if length == "None":
+                if length == "None" or length == 0:
+                    continue
+                if isinstance(length, int):
+                    output["command_args"] = o_args[i + 1 : i + 1 + length]
+                    skip_next = length
                     continue
 
         if this_arg == "":
