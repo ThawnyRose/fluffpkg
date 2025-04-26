@@ -150,8 +150,8 @@ def print_help(
 
 
 def parse_modify(
-    package: str, attribute: list[str], commandList=builtin_commands
-) -> dict:
+    package: str, attribute: list[str], commandList: list[Command]
+) -> dict | None:
     source = sourcesLib.get_source(package)
     if source is None:
         return parse_args(attribute, commandList)
@@ -159,12 +159,23 @@ def parse_modify(
     newCommandList = commandList + moduleLib.getModifications(source.module)
 
     # print("MODIFY", package, source.module, attribute, newCommandList)
-    return parse_args(attribute, newCommandList)
+    try:
+        return parse_args(attribute, newCommandList)
+    except UnknownCommand:
+        print(f"Unknown Attribute '{attribute[0]}'")
+        show_cmd = [c for c in builtin_commands if c.name == "show"][0]
+        show_cmd.args[0].name = f"package from {source.module}"
+        show_cmd.args[1].cmds += moduleLib.getShows(source.module)
+        try:
+            print(show_cmd.usage())
+        except Exception:
+            pass
+        return None
 
 
 def parse_show(
-    package: str, attribute: list[str], commandList=builtin_commands
-) -> dict:
+    package: str, attribute: list[str], commandList: list[Command]
+) -> dict | None:
     source = sourcesLib.get_source(package)
     if source is None:
         return parse_args(attribute, commandList)
@@ -172,7 +183,18 @@ def parse_show(
     newCommandList = commandList + moduleLib.getShows(source.module)
 
     # print("MODIFY", package, source.module, attribute, newCommandList)
-    return parse_args(attribute, newCommandList)
+    try:
+        return parse_args(attribute, newCommandList)
+    except UnknownCommand:
+        print(f"Unknown Attribute '{attribute[0]}'")
+        show_cmd = [c for c in builtin_commands if c.name == "show"][0]
+        show_cmd.args[0].name = f"package from {source.module}"
+        show_cmd.args[1].cmds += moduleLib.getShows(source.module)
+        try:
+            print(show_cmd.usage())
+        except Exception:
+            pass
+        return None
 
 
 def parse_args(cmd_args: list[str], commandList=builtin_commands) -> dict:
@@ -257,28 +279,32 @@ def parse_args(cmd_args: list[str], commandList=builtin_commands) -> dict:
             continue
 
         if cmd_positional is not None:
-            try:
-                if command.name == "modify":
-                    recurse = parse_modify(
-                        output["package"],
-                        o_args[i + 1 :],
-                        commandList=cmd_positional.cmds,
-                    )
-                elif command.name == "show":
-                    recurse = parse_show(
-                        output["package"],
-                        o_args[i + 1 :],
-                        commandList=cmd_positional.cmds,
-                    )
-                else:
+            if command.name == "modify":
+                recurse = parse_modify(
+                    output["package"],
+                    o_args[i + 1 :],
+                    commandList=cmd_positional.cmds,
+                )
+                if recurse is None:
+                    exit()
+            elif command.name == "show":
+                recurse = parse_show(
+                    output["package"],
+                    o_args[i + 1 :],
+                    commandList=cmd_positional.cmds,
+                )
+                if recurse is None:
+                    exit()
+            else:
+                try:
                     recurse = parse_args(
                         o_args[i + 1 :], commandList=cmd_positional.cmds
                     )
-                cmd_positional.handled = True
-            except UnknownCommand:
-                print(f"Unknown {cmd_positional.name} '{cmd_args[i]}'")
-                print(help_cmd(command.name, commandList))
-                exit()
+                except UnknownCommand:
+                    print(f"Unknown {cmd_positional.name} '{cmd_args[i]}'")
+                    print(help_cmd(command.name, commandList))
+                    exit()
+            cmd_positional.handled = True
             output[cmd_positional.name] = recurse
             break
 
