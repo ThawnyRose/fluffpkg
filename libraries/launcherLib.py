@@ -1,13 +1,16 @@
 from pathlib import Path
 from libraries import manageInstalledLib
+from libraries import sourcesLib
 
 
-def add_categories(package: str, new_categories: str | list[str]) -> None:
-    if isinstance(new_categories, str):
-        if ";" in new_categories:
-            new_categories = new_categories.split(";")
-        else:
-            new_categories = new_categories.split(" ")
+def format_categories_arg(args: list[str]) -> list[str]:
+    if len(args) == 1:
+        return args[0].split(";")
+    return args
+
+
+def add_categories(package: str, new_categories: list[str]) -> None:
+    new_categories = format_categories_arg(new_categories)
 
     install = manageInstalledLib.query(package)
     if not install:
@@ -28,9 +31,10 @@ def add_categories(package: str, new_categories: str | list[str]) -> None:
     for i in range(len(lines)):
         if lines[i].startswith("Categories="):
             old_categories = [x for x in lines[i][11:].split(";") if x != ""]
-            lines[i] = "Categories=" + (
-                ";".join(list(set(old_categories + new_categories))) + ";"
-            )
+            c_list = list(set(old_categories + new_categories))
+            lines[i] = "Categories=" + (";".join(c_list) + ";")
+            if install.source.kind == "manual":
+                sourcesLib.update_categories(install.package_name, c_list)
             found_category_line = True
     launcher_contents = "\n".join(lines)
     if not found_category_line:
@@ -42,12 +46,8 @@ def add_categories(package: str, new_categories: str | list[str]) -> None:
     print("Categories Added")
 
 
-def remove_categories(package: str, new_categories: str | list[str]) -> None:
-    if isinstance(new_categories, str):
-        if ";" in new_categories:
-            new_categories = new_categories.split(";")
-        else:
-            new_categories = new_categories.split(" ")
+def remove_categories(package: str, new_categories: list[str]) -> None:
+    new_categories = format_categories_arg(new_categories)
 
     install = manageInstalledLib.query(package)
     if not install:
@@ -68,9 +68,10 @@ def remove_categories(package: str, new_categories: str | list[str]) -> None:
     for i in range(len(lines)):
         if lines[i].startswith("Categories="):
             old_categories = [x for x in lines[i][11:].split(";") if x != ""]
-            lines[i] = "Categories=" + (
-                ";".join(list(set(old_categories).difference(new_categories))) + ";"
-            )
+            c_list = list(set(old_categories).difference(new_categories))
+            lines[i] = "Categories=" + (";".join(c_list) + ";")
+            if install.source.kind == "manual":
+                sourcesLib.update_categories(install.package_name, c_list)
             found_category_line = True
     launcher_contents = "\n".join(lines)
     if not found_category_line:
@@ -149,3 +150,31 @@ def remove_launcher(package: str) -> None:
     launcherDest.unlink()
     print("Launcher .desktop removed")
     manageInstalledLib.mark_attribute(package, "launcher", False)
+
+
+def list_categories(package: str) -> None:
+    install = manageInstalledLib.query(package)
+    if not install:
+        print("Could not read launcher, package not installed")
+        exit()
+    if not install.launcher:
+        print("Could not read launcher, package does not have launcher")
+        exit()
+
+    launcherName = package + ".desktop"
+    launcherPath = (
+        Path("~/.fluffpkg/data/appimage/launcher/").expanduser() / launcherName
+    )
+    found_category_line = False
+    with open(launcherPath, "r") as f:
+        launcher_contents = f.read()
+    lines = launcher_contents.split("\n")
+    for i in range(len(lines)):
+        if lines[i].startswith("Categories="):
+            print(
+                ", ".join(
+                    c
+                    for c in lines[i].replace("Categories=", "", 1).split(";")
+                    if c.strip() != ""
+                )
+            )

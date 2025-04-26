@@ -1,6 +1,7 @@
 from tabulate import tabulate
 import sys
 
+from libraries.dataClasses import FlagArg, ValueArg, PosArg, PosArgs, CmdArg, Command
 from libraries.exceptions import UnknownCommand
 
 from libraries import moduleLib
@@ -8,160 +9,87 @@ from libraries import moduleLib
 program_desc = "The Fluffy Multipurpose Package Installer :3 - ThawnyRose"
 
 
-class arg:
-    pass
-
-    def usage(self) -> str:
-        return "ERROR"
-
-
-class flag_arg(arg):
-    value: bool = False
-
-    def __init__(self, short: str, name: str, help: str):
-        self.short = short
-        self.name = name
-        self.help = help
-
-    def usage(self) -> str:
-        return f"[{self.name}]"
-
-
-class value_arg(arg):
-    value: str | None = None
-
-    def __init__(self, short: str, name: str, help: str):
-        self.short = short
-        self.name = name
-        self.help = help
-
-    def usage(self) -> str:
-        return f"[{self.name} = ]"
-
-
-class pos_arg(arg):
-    def __init__(self, name: str, optional: bool = False):
-        self.name = name
-        self.optional = optional
-
-    def usage(self) -> str:
-        return f"[{self.name}]" if self.optional else f"<{self.name}>"
-
-
-class pos_args(arg):
-    values: list[str] = []
-
-    def __init__(self, name: str, optional: bool = False):
-        self.name = name
-        self.optional = optional
-
-    def usage(self) -> str:
-        return f"[{self.name}...]" if self.optional else f"<{self.name}...>"
-
-
-class command:
-    def __init__(self, name: str, help: str, args: list[arg]):
-        self.name = name
-        self.help = help
-        self.args = args
-
-    def usage(self) -> str:
-        return f"Usage: {self.name} {' '.join(a.usage() for a in self.args)}"
-
-
-class cmd_arg(arg):
-    def __init__(self, name: str, cmds: list[command]):
-        self.name = name
-        self.cmds = cmds
-        self.handled = False
-
-    def usage(self) -> str:
-        output = f"<{self.name}> ...\n"
-        output += "Attributes:\n"
-        output += help_all_cmds(self.cmds)
-        return output
-
-
-builtin_commands: list[command] = [
-    command(
+builtin_commands: list[Command] = [
+    Command(
         "help",
         "Gives usage for each command",
         [
-            pos_arg("command_help", optional=True),
+            PosArg("command_help", optional=True),
         ],
     ),
-    command(
+    Command(
         "install",
         "Install packages",
         [
-            flag_arg("-l", "--nolauncher", "Dont install .desktop files"),
-            value_arg("-v", "--version", "Specify a version for installation"),
-            pos_args("packages"),
+            FlagArg("-l", "--nolauncher", "Don't install .desktop files"),
+            ValueArg("-v", "--version", "Specify a version for installation"),
+            PosArgs("packages"),
         ],
     ),
-    command(
+    Command(
         "list",
         "List packages",
         [
-            flag_arg("-i", "--installed", "Only list installed packages"),
+            FlagArg("-i", "--installed", "Only list installed packages"),
         ],
     ),
-    command(
+    Command(
         "upgrade",
         "Upgrade packages",
         [
-            flag_arg("-f", "--force", "Overrides version lock"),
-            pos_args("packages", optional=True),
+            FlagArg("-f", "--force", "Overrides version lock"),
+            PosArgs("packages", optional=True),
         ],
     ),
-    command(
+    Command(
         "modify",
         "Modify a package",
         [
-            pos_arg("package"),
-            cmd_arg(
+            PosArg("package"),
+            CmdArg(
                 "attribute",
                 [
-                    command(
+                    Command(
                         "add-launcher",
                         "Add a launcher entry for the package",
-                        [
-                            flag_arg(
-                                "-f", "--force", "Overrides existing .desktop files"
-                            )
-                        ],
+                        [FlagArg("-f", "--force", "Overrides existing .desktop files")],
                     ),
-                    command(
+                    Command(
                         "remove-launcher",
                         "Remove the launcher entry for the package",
                         [],
                     ),
-                    command(
+                    Command(
                         "add-categories",
                         "Add categories to the launcher entry",
-                        [pos_arg("categories")],
+                        [PosArgs("categories")],
                     ),
-                    command(
+                    Command(
                         "remove-categories",
                         "Remove categories from the launcher entry",
-                        [pos_arg("categories")],
+                        [PosArgs("categories")],
+                    ),
+                    Command(
+                        "list-categories",
+                        "List categories in a launcher entry",
+                        [],
                     ),
                 ],
             ),
         ],
     ),
-    command(
+    Command(
         "remove",
         "Remove packages",
         [
-            pos_args("packages"),
+            PosArgs("packages"),
         ],
     ),
-    command("versions", "Get available versions for a package", [pos_arg("package")]),
+    Command("versions", "Get available versions for a package", [PosArg("package")]),
 ]
 
 
-def help_cmd(command_name: str, commandList: list[command] = builtin_commands) -> str:
+def help_cmd(command_name: str, commandList: list[Command] = builtin_commands) -> str:
     command = None
 
     for bc in commandList:
@@ -176,7 +104,7 @@ def help_cmd(command_name: str, commandList: list[command] = builtin_commands) -
     return command.usage()
 
 
-def help_all_cmds(commandList) -> str:
+def help_all_cmds(commandList: list[Command] = builtin_commands) -> str:
     table_data = []
     for command in commandList:
         table_data.append(
@@ -192,13 +120,15 @@ def help_all_cmds(commandList) -> str:
     return table
 
 
-def print_help(command_name: str | None = None) -> None:
+def print_help(
+    command_name: str | None = None, commandList: list[Command] = builtin_commands
+) -> None:
     if command_name is not None:
-        print(help_cmd(command_name))
+        print(help_cmd(command_name, commandList))
     else:
         print(program_desc)
         print("Available commands:")
-        print(help_all_cmds(builtin_commands))
+        print(help_all_cmds(commandList))
 
 
 def parse_args(cmd_args: list[str], commandList=builtin_commands) -> dict:
@@ -217,22 +147,22 @@ def parse_args(cmd_args: list[str], commandList=builtin_commands) -> dict:
     if command is None:
         raise UnknownCommand(command_name)
 
-    flags: list[flag_arg] = []
-    values: list[value_arg] = []
-    positionals: list[pos_arg] = []
-    cmd_positional: cmd_arg | None = None
-    star_positional: pos_args | None = None
+    flags: list[FlagArg] = []
+    values: list[ValueArg] = []
+    positionals: list[PosArg] = []
+    cmd_positional: CmdArg | None = None
+    star_positional: PosArgs | None = None
 
     for arg in command.args:
-        if isinstance(arg, flag_arg):
+        if isinstance(arg, FlagArg):
             flags.append(arg)
-        elif isinstance(arg, value_arg):
+        elif isinstance(arg, ValueArg):
             values.append(arg)
-        elif isinstance(arg, pos_arg):
+        elif isinstance(arg, PosArg):
             positionals.append(arg)
-        elif isinstance(arg, cmd_arg):
+        elif isinstance(arg, CmdArg):
             cmd_positional = arg
-        elif isinstance(arg, pos_args):
+        elif isinstance(arg, PosArgs):
             star_positional = arg
 
     output = {}

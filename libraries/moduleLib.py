@@ -1,17 +1,14 @@
-from libraries.dataClasses import Candidate, Installation
-
-# from libraries import manageInstalledLib
-# from libraries import sourcesLib
-
+from types import FunctionType
+from libraries.dataClasses import Candidate, Installation, Command
 
 _API_LIST = {}
-_COMMANDS = {}
+_COMMANDS: list[tuple[Command, FunctionType]] = []
 
 
 def register(module: str, funcs: dict) -> None:
     global _COMMANDS
     _API_LIST[module] = funcs
-    _COMMANDS = {**_COMMANDS, **(funcs.get("commands", {}))}
+    _COMMANDS = _COMMANDS + funcs.get("commands", [])
 
 
 def install(module: str, candidate: Candidate, cmd_args: dict):
@@ -19,15 +16,15 @@ def install(module: str, candidate: Candidate, cmd_args: dict):
 
 
 def remove(module: str, installation: Installation, cmd_args: dict) -> None:
-    _API_LIST[module]["remove"](installation)
+    _API_LIST[module]["remove"](installation, cmd_args)
 
 
 def upgrade(module: str, installation: Installation, cmd_args: dict) -> None:
     _API_LIST[module]["upgrade"](installation, cmd_args)
 
 
-def versions(module: str, installation: Installation, cmd_args: dict) -> None:
-    _API_LIST[module]["versions"](installation, cmd_args)
+def versions(module: str, candidate: Candidate, cmd_args: dict) -> None:
+    _API_LIST[module]["versions"](candidate, cmd_args)
 
 
 def hasCommand(module: str, command: str) -> bool:
@@ -35,8 +32,13 @@ def hasCommand(module: str, command: str) -> bool:
 
 
 def commandNames() -> list[str]:
-    return list(_COMMANDS.keys())
+    return [c[0].name for c in _COMMANDS]
+
+
+def getCommands() -> list[Command]:
+    return [c[0] for c in _COMMANDS]
 
 
 def command(command: str, cmd_args: dict) -> None:
-    _COMMANDS[command](cmd_args)
+    cmd = [c[1] for c in _COMMANDS if c[0].name == command][0]
+    cmd(cmd_args)

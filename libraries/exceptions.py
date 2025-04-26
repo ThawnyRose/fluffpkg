@@ -44,6 +44,11 @@ class SpecificVersion(SilentException):
         )
 
 
+class APICallFailed(SilentException):
+    def __init__(self, message: str):
+        super().__init__(message)
+
+
 ### ArgumentLib
 class UnknownCommand(SilentException):
     def __init__(self, command: str):

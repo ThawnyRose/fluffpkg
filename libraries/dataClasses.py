@@ -1,5 +1,7 @@
 import json
 
+from tabulate import tabulate
+
 
 class Source:
     def __init__(self, kind: str, url: str):
@@ -72,3 +74,96 @@ class QueryResult:
     def __init__(self, kind: str, candidates: list[Candidate]):
         self.kind = kind
         self.candidates = candidates
+
+
+## ArgumentsLib:
+
+
+class Arg:
+    pass
+
+    def usage(self) -> str:
+        return "ERROR"
+
+
+class FlagArg(Arg):
+    value: bool = False
+
+    def __init__(self, short: str, name: str, help: str):
+        self.short = short
+        self.name = name
+        self.help = help
+
+    def usage(self) -> str:
+        return f"[{self.name}]"
+
+
+class ValueArg(Arg):
+    value: str | None = None
+
+    def __init__(self, short: str, name: str, help: str):
+        self.short = short
+        self.name = name
+        self.help = help
+
+    def usage(self) -> str:
+        return f"[{self.name} = ]"
+
+
+class PosArg(Arg):
+    def __init__(self, name: str, optional: bool = False):
+        self.name = name
+        self.optional = optional
+
+    def usage(self) -> str:
+        return f"[{self.name}]" if self.optional else f"<{self.name}>"
+
+
+class PosArgs(Arg):
+    values: list[str] = []
+
+    def __init__(self, name: str, optional: bool = False):
+        self.name = name
+        self.optional = optional
+
+    def usage(self) -> str:
+        return f"[{self.name}...]" if self.optional else f"<{self.name}...>"
+
+
+class Command:
+    def __init__(self, name: str, help: str, args: list[Arg]):
+        self.name = name
+        self.help = help
+        self.args = args
+
+    def usage(self) -> str:
+        return f"Usage: {self.name} {' '.join(a.usage() for a in self.args)}"
+
+    def __repr__(self):
+        return self.name
+
+
+class CmdArg(Arg):
+    def __init__(self, name: str, cmds: list[Command]):
+        self.name = name
+        self.cmds = cmds
+        self.handled = False
+
+    def usage(self) -> str:
+        output = f"<{self.name}> ...\n"
+        output += "Attributes:\n"
+
+        table_data = []
+        for command in self.cmds:
+            table_data.append(
+                [
+                    "",
+                    command.name,
+                    "",
+                    "",
+                    command.help,
+                ]
+            )
+        output += tabulate(table_data, tablefmt="plain")
+
+        return output

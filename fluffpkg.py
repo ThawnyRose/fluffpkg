@@ -20,17 +20,12 @@ Path("~/.fluffpkg").expanduser().mkdir(parents=True, exist_ok=True)
 
 # import sys
 # import traceback
-
-
 # class TracePrints(object):
 #     def __init__(self):
 #         self.stdout = sys.stdout
-
 #     def write(self, s):
 #         self.stdout.write("Writing %r\n" % s)
 #         traceback.print_stack(file=self.stdout)
-
-
 # sys.stdout = TracePrints()
 
 
@@ -41,13 +36,15 @@ if len(args) == 0:
     argumentsLib.print_help()
     exit()
 
-args = argumentsLib.parse_args(args)
+combinedCommands = argumentsLib.builtin_commands + moduleLib.getCommands()
+
+args = argumentsLib.parse_args(args, combinedCommands)
 
 if not args:
     exit()
 
 if args["command"] == "help":
-    argumentsLib.print_help(args["command_help"])
+    argumentsLib.print_help(args["command_help"], commandList=combinedCommands)
     exit()
 if args["command"] == "install":
     for package_name in args["packages"]:
@@ -114,15 +111,15 @@ elif args["command"] == "upgrade":
             moduleLib.upgrade(install.module, install, args)
 elif args["command"] == "versions":
     package_name = args["package"]
-    install = manageInstalledLib.query(package_name)
-    if install is None:
+    candidate = sourcesLib.get_source(package_name)
+    if candidate is None:
         print(f"{package_name} is not installed.")
         exit()
-    if not moduleLib.hasCommand(install.module, "versions"):
-        print(f"Module {install.module} does not support getting available versions")
+    if not moduleLib.hasCommand(candidate.module, "versions"):
+        print(f"Module {candidate.module} does not support getting available versions")
         exit()
 
-    moduleLib.versions(install.module, install, args)
+    moduleLib.versions(candidate.module, candidate, args)
 elif args["command"] == "list":
     if args["--installed"]:
         installed = manageInstalledLib.list()
@@ -145,7 +142,7 @@ elif args["command"] == "list":
             headers=[
                 "Name",
                 "Version",
-                "Executable Name",
+                "Package Name",
                 "Launcher",
                 "Path",
                 "Module",
@@ -163,11 +160,11 @@ elif args["command"] == "list":
                     candidate.name,
                     candidate.package_name,
                     candidate.module,
-                    candidate.source.kind + " " + candidate.source.url,
+                    candidate.source,
                 ]
             )
         table = tabulate(
-            table_data, headers=["Name", "Executable Name", "Module", "Source"]
+            table_data, headers=["Name", "Package Name", "Module", "Source"]
         )
         print(table)
 elif args["command"] == "modify":
@@ -183,9 +180,11 @@ elif args["command"] == "modify":
         launcherLib.add_launcher_later(package, args["attribute"]["--force"])
     elif attribute == "remove-launcher":
         launcherLib.remove_launcher(package)
+    elif attribute == "list-categories":
+        launcherLib.list_categories(package)
     else:
-        print(f"Unknown modification {attribute}")
+        raise InternalError(f"Unknown Modification: {attribute}")
 elif args["command"] in moduleLib.commandNames():
     moduleLib.command(args["command"], args)
 else:
-    raise InternalError("Unknown command: " + args["command"])
+    raise InternalError("Unknown Command: " + args["command"])

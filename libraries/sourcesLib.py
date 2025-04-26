@@ -39,11 +39,11 @@ CREATE TABLE IF NOT EXISTS sources (
 conn.commit()
 
 
-def get_source(package: str) -> Candidate:
+def get_source(package: str) -> Candidate | None:
     original_source = query(package)
     # if isinstance(original_source, type(None)):
     if original_source is None:
-        raise NoCandidate()
+        return None
     if len(original_source.candidates) != 1:
         candidates = [
             c for c in original_source.candidates if c.source == "github-appimage"
@@ -115,6 +115,14 @@ def remove_candidate(package: str) -> None:
     cursor.execute(
         "DELETE FROM candidates WHERE package_name = ?",
         (package,),
+    )
+    conn.commit()
+
+
+def update_categories(package: str, categories: list[str]) -> None:
+    cursor.execute(
+        "UPDATE candidates SET categories = ? WHERE package_name = ?",
+        (json.dumps(categories), package),
     )
     conn.commit()
 
