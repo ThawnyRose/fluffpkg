@@ -35,7 +35,7 @@ def mark_installed(
     version_locked: bool = False,
 ):
     cursor.execute(
-        "INSERT INTO installed (package_name, name, version, launcher, path, module, source, executable_path, version_locked) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO installed (package_name, name, version, launcher, path, module, source, executable_path, version_locked) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
             candidate.package_name,
             candidate.name,
