@@ -4,6 +4,7 @@ from tabulate import tabulate
 from libraries import sourcesLib
 from libraries import manageInstalledLib
 from libraries import launcherLib
+from libraries import pathLib
 import modules
 from libraries import moduleLib
 from libraries import argumentsLib
@@ -18,6 +19,7 @@ from libraries.exceptions import (
 import sys
 
 Path("~/.fluffpkg").expanduser().mkdir(parents=True, exist_ok=True)
+Path("~/.fluffpkg/bin").expanduser().mkdir(parents=True, exist_ok=True)
 
 # import sys
 # import traceback
@@ -192,6 +194,10 @@ elif args["command"] == "modify":
         launcherLib.add_launcher_later(package, args["attribute"]["--force"])
     elif attribute == "remove-launcher":
         launcherLib.remove_launcher(package)
+    elif attribute == "add-path":
+        pathLib.add_path(package)
+    elif attribute == "remove-path":
+        pathLib.remove_path(package)
     else:
         source = sourcesLib.get_source(package)
         if source is None:

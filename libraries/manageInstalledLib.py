@@ -83,8 +83,14 @@ def mark_attribute(package: str, name: str, value) -> None:
         )
         conn.commit()
         return
-
-    print(
-        f"Internal Error: Installation record {name} does not exist or cannot be changed by the mark_attribute function."
-    )
-    exit()
+    elif name == "path":
+        cursor.execute(
+            "UPDATE installed SET path = ? WHERE package_name = ?",
+            (bool(value), package),
+        )
+        conn.commit()
+    else:
+        print(
+            f"Internal Error: Installation record {name} does not exist or cannot be changed by the mark_attribute function."
+        )
+        exit()

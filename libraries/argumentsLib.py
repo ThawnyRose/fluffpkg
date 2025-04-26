@@ -22,6 +22,7 @@ builtin_commands: list[Command] = [
         "Install packages",
         [
             FlagArg("-l", "--nolauncher", "Don't install .desktop files"),
+            FlagArg("-p", "--path", "Add installed package to the path"),
             ValueArg("-v", "--version", "Specify a version for installation"),
             PosArgs("packages", "Packages to install"),
         ],
@@ -58,6 +59,16 @@ builtin_commands: list[Command] = [
                     Command(
                         "remove-launcher",
                         "Remove the launcher entry for the package",
+                        [],
+                    ),
+                    Command(
+                        "add-path",
+                        "Add a the package to the path",
+                        [],
+                    ),
+                    Command(
+                        "remove-path",
+                        "Remove the package from the path",
                         [],
                     ),
                     Command(
@@ -171,12 +182,12 @@ def parse_modify(
         return parse_args(attribute, newCommandList)
     except UnknownCommand:
         print(f"Unknown Attribute '{attribute[0]}'")
-        show_cmd = [c for c in builtin_commands if c.name == "show"][0]
-        show_cmd.args[0].name = f"package from {source.module}"
-        assert isinstance(show_cmd.args[1], CmdArg)
-        show_cmd.args[1].cmds += moduleLib.getShows(source.module)
+        modify_cmd = [c for c in builtin_commands if c.name == "modify"][0]
+        modify_cmd.args[0].name = f"package from {source.module}"
+        assert isinstance(modify_cmd.args[1], CmdArg)
+        modify_cmd.args[1].cmds += moduleLib.getModifications(source.module)
         try:
-            print(show_cmd.usage())
+            print(modify_cmd.usage())
         except Exception:
             pass
         return None
@@ -349,15 +360,7 @@ def parse_args(cmd_args: list[str], commandList=builtin_commands) -> dict:
         output[p.name] = None
 
     for i in flags + values:
-        # if i.value is not None:
         output[i.name] = i.value
     if star_positional is not None:
         output[star_positional.name] = star_positional.values
     return output
-
-
-# if __name__ == "__main__":
-# print_help()
-# print_help("install")
-# print(parse_args(["install", "abc", "def", "ghi"]))
-# print(parse_args(["modify", "pkg", "add-categories", "cata;cata;"]))

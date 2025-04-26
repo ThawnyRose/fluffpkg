@@ -15,10 +15,11 @@ from libraries.exceptions import (
     AlreadyInstalled,
     APICallFailed,
 )
-from libraries.utilitiesLib import user_pick
+from libraries.utilitiesLib import user_pick, pathwarn
 from libraries import manageInstalledLib
 from libraries import sourcesLib
 from libraries import launcherLib
+from libraries import pathLib
 from libraries import moduleLib
 import time
 import os
@@ -163,12 +164,17 @@ def setup() -> None:
 
 
 def install_cmd(candidate: Candidate, cmd_args: dict) -> None:
-    install(candidate, cmd_args["--nolauncher"], False, cmd_args["--version"])
+    install(
+        candidate,
+        nolauncher=cmd_args["--nolauncher"],
+        path=cmd_args["--path"],
+        version=cmd_args["--version"],
+    )
 
 
 def install(
     candidate: Candidate,
-    nolauncher: bool = True,
+    nolauncher: bool = False,
     path: bool = False,
     version: str | None = None,
     upgrade=False,
@@ -199,11 +205,16 @@ def install(
     # print(release)
     url = release["Appimage"]["DownloadUrl"]
     name = release["Appimage"]["Name"]
-    outPath = Path("~/.fluffpkg/data/appimage/files/").expanduser() / name
-    download_file(url, output=outPath, prettyname=name)
-    os.chmod(outPath, os.stat(outPath).st_mode | stat.S_IXUSR | stat.S_IXGRP)
+    executable_path = Path("~/.fluffpkg/data/appimage/files/").expanduser() / name
+    download_file(url, output=executable_path, prettyname=name)
+    os.chmod(
+        executable_path, os.stat(executable_path).st_mode | stat.S_IXUSR | stat.S_IXGRP
+    )
     manageInstalledLib.mark_installed(
-        candidate, release["Tag"], str(outPath.resolve()), version_locked=version_locked
+        candidate,
+        release["Tag"],
+        str(executable_path.resolve()),
+        version_locked=version_locked,
     )
     print(f"{candidate.name} successfully installed!")
 
@@ -211,11 +222,11 @@ def install(
         launcherLib.add_launcher(
             candidate.package_name,
             candidate.name,
-            outPath,
+            executable_path,
             candidate.categories,
         )
     if path:
-        print(".appimage files aren't currently added to the path")
+        pathLib.add_path(candidate.package_name)
 
 
 def add_cmd(cmd_args: dict) -> None:
@@ -263,6 +274,7 @@ def add_install_cmd(cmd_args: dict) -> None:
             owner,
             repo,
             nolauncher=cmd_args["--nolauncher"],
+            path=cmd_args["--path"],
             version=cmd_args["--version"],
         )
 
@@ -271,10 +283,16 @@ def add_install(
     owner: str,
     repo: str,
     nolauncher: bool = False,
+    path: bool = False,
     version: str | None = None,
 ) -> None:
     candidate = add(owner, repo)
-    install(candidate, nolauncher, version=version)
+    install(
+        candidate,
+        nolauncher=nolauncher,
+        path=path,
+        version=version,
+    )
 
 
 # def remove_source_cmd(cmd_args: dict) -> None:
@@ -290,9 +308,9 @@ def remove(installation: Installation, upgrade: bool = False) -> None:
     assert installation.module == "github-appimage"
     package = installation.package_name
     if installation.launcher:
-        launcherLib.remove_launcher(
-            package,
-        )
+        launcherLib.remove_launcher(package)
+    if installation.path:
+        pathLib.remove_path(package)
     appimage = Path(installation.executable_path)
     appimage.unlink()
     manageInstalledLib.unmark_installed(package)
@@ -401,6 +419,7 @@ moduleLib.register(
                     "Adds and installs github appimages",
                     [
                         FlagArg("-l", "--nolauncher", "Don't install .desktop files"),
+                        FlagArg("-p", "--path", "Add installed package to the path"),
                         ValueArg(
                             "-v", "--version", "Specify a version for installation"
                         ),
