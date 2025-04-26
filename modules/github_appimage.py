@@ -351,6 +351,17 @@ def versions(candidate: Candidate) -> None:
     print("\n".join(tag_names))
 
 
+def execpath_cmd(installation: Installation, cmd_args: dict) -> None:
+    print(execpath(installation, cmd_args["--noversion"]))
+
+
+def execpath(installation: Installation, noVersion: bool = False) -> str:
+    execpath = installation.executable_path
+    if noVersion:
+        execpath = execpath.replace(installation.version, "*")
+    return execpath
+
+
 def user_select_filter_modify(package: str, value: str):
     source = sourcesLib.get_source(package)
     if source is None:
@@ -374,6 +385,7 @@ moduleLib.register(
         "remove": remove,
         "upgrade": upgrade_cmd,
         "versions": versions_cmd,
+        "execpath": execpath_cmd,
         "commands": [
             (
                 Command(

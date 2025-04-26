@@ -104,6 +104,14 @@ builtin_commands: list[Command] = [
         "Get available versions for a package",
         [PosArg("package", "Package to get versions for")],
     ),
+    Command(
+        "execpath",
+        "Get executable path for a package",
+        [
+            PosArg("package", "Package to find path for"),
+            FlagArg("-v", "--noversion", "Return with a glob for the file version"),
+        ],
+    ),
 ]
 
 
@@ -165,6 +173,7 @@ def parse_modify(
         print(f"Unknown Attribute '{attribute[0]}'")
         show_cmd = [c for c in builtin_commands if c.name == "show"][0]
         show_cmd.args[0].name = f"package from {source.module}"
+        assert isinstance(show_cmd.args[1], CmdArg)
         show_cmd.args[1].cmds += moduleLib.getShows(source.module)
         try:
             print(show_cmd.usage())
@@ -189,6 +198,7 @@ def parse_show(
         print(f"Unknown Attribute '{attribute[0]}'")
         show_cmd = [c for c in builtin_commands if c.name == "show"][0]
         show_cmd.args[0].name = f"package from {source.module}"
+        assert isinstance(show_cmd.args[1], CmdArg)
         show_cmd.args[1].cmds += moduleLib.getShows(source.module)
         try:
             print(show_cmd.usage())

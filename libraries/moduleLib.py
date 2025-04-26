@@ -36,6 +36,10 @@ def versions(module: str, candidate: Candidate, cmd_args: dict) -> None:
     _API_LIST[module]["versions"](candidate, cmd_args)
 
 
+def execpath(module: str, installation: Installation, cmd_args: dict) -> None:
+    _API_LIST[module]["execpath"](installation, cmd_args)
+
+
 def hasCommand(module: str, command: str) -> bool:
     return command in _API_LIST[module].keys()
 

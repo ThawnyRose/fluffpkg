@@ -114,13 +114,24 @@ elif args["command"] == "versions":
     package_name = args["package"]
     candidate = sourcesLib.get_source(package_name)
     if candidate is None:
-        print(f"{package_name} is not installed.")
+        print(f"{package_name} has no source.")
         exit()
     if not moduleLib.hasCommand(candidate.module, "versions"):
         print(f"Module {candidate.module} does not support getting available versions")
         exit()
 
     moduleLib.versions(candidate.module, candidate, args)
+elif args["command"] == "execpath":
+    package_name = args["package"]
+    install = manageInstalledLib.query(package_name)
+    if install is None:
+        print(f"{package_name} is not installed.")
+        exit()
+    if not moduleLib.hasCommand(install.module, "execpath"):
+        print(f"Module {install.module} does not support getting executable path")
+        exit()
+
+    moduleLib.execpath(install.module, install, args)
 elif args["command"] == "list":
     if args["--installed"]:
         installed = manageInstalledLib.list()
