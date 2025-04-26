@@ -29,7 +29,7 @@ class AlreadyNewest(SilentException):
 
 class NoCandidate(SilentException):
     def __init__(self):
-        super().__init__("No candidates found")
+        super().__init__("No sources found")
 
 
 class MultipleCandidates(SilentException):

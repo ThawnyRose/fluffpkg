@@ -1,9 +1,9 @@
 from tabulate import tabulate
-import sys
 
 from libraries.dataClasses import FlagArg, ValueArg, PosArg, PosArgs, CmdArg, Command
 from libraries.exceptions import UnknownCommand
 
+from libraries import sourcesLib
 from libraries import moduleLib
 
 program_desc = "The Fluffy Multipurpose Package Installer :3 - ThawnyRose"
@@ -14,7 +14,7 @@ builtin_commands: list[Command] = [
         "help",
         "Gives usage for each command",
         [
-            PosArg("command_help", optional=True),
+            PosArg("command_help", "Command to get help for", optional=True),
         ],
     ),
     Command(
@@ -23,7 +23,7 @@ builtin_commands: list[Command] = [
         [
             FlagArg("-l", "--nolauncher", "Don't install .desktop files"),
             ValueArg("-v", "--version", "Specify a version for installation"),
-            PosArgs("packages"),
+            PosArgs("packages", "Packages to install"),
         ],
     ),
     Command(
@@ -38,16 +38,17 @@ builtin_commands: list[Command] = [
         "Upgrade packages",
         [
             FlagArg("-f", "--force", "Overrides version lock"),
-            PosArgs("packages", optional=True),
+            PosArgs("packages", "Packages to upgrade", optional=True),
         ],
     ),
     Command(
         "modify",
         "Modify a package",
         [
-            PosArg("package"),
+            PosArg("package", "Package to modify"),
             CmdArg(
                 "attribute",
+                "Attribute to be modified",
                 [
                     Command(
                         "add-launcher",
@@ -62,15 +63,28 @@ builtin_commands: list[Command] = [
                     Command(
                         "add-categories",
                         "Add categories to the launcher entry",
-                        [PosArgs("categories")],
+                        [PosArgs("categories", "Categories to add")],
                     ),
                     Command(
                         "remove-categories",
                         "Remove categories from the launcher entry",
-                        [PosArgs("categories")],
+                        [PosArgs("categories", "Categories to remove")],
                     ),
+                ],
+            ),
+        ],
+    ),
+    Command(
+        "show",
+        "Show a package's attributes",
+        [
+            PosArg("package", "Package to modify"),
+            CmdArg(
+                "attribute",
+                "Attribute to be shown",
+                [
                     Command(
-                        "list-categories",
+                        "categories",
                         "List categories in a launcher entry",
                         [],
                     ),
@@ -82,10 +96,14 @@ builtin_commands: list[Command] = [
         "remove",
         "Remove packages",
         [
-            PosArgs("packages"),
+            PosArgs("packages", "Packages to remove"),
         ],
     ),
-    Command("versions", "Get available versions for a package", [PosArg("package")]),
+    Command(
+        "versions",
+        "Get available versions for a package",
+        [PosArg("package", "Package to get versions for")],
+    ),
 ]
 
 
@@ -129,6 +147,32 @@ def print_help(
         print(program_desc)
         print("Available commands:")
         print(help_all_cmds(commandList))
+
+
+def parse_modify(
+    package: str, attribute: list[str], commandList=builtin_commands
+) -> dict:
+    source = sourcesLib.get_source(package)
+    if source is None:
+        return parse_args(attribute, commandList)
+
+    newCommandList = commandList + moduleLib.getModifications(source.module)
+
+    # print("MODIFY", package, source.module, attribute, newCommandList)
+    return parse_args(attribute, newCommandList)
+
+
+def parse_show(
+    package: str, attribute: list[str], commandList=builtin_commands
+) -> dict:
+    source = sourcesLib.get_source(package)
+    if source is None:
+        return parse_args(attribute, commandList)
+
+    newCommandList = commandList + moduleLib.getShows(source.module)
+
+    # print("MODIFY", package, source.module, attribute, newCommandList)
+    return parse_args(attribute, newCommandList)
 
 
 def parse_args(cmd_args: list[str], commandList=builtin_commands) -> dict:
@@ -214,7 +258,22 @@ def parse_args(cmd_args: list[str], commandList=builtin_commands) -> dict:
 
         if cmd_positional is not None:
             try:
-                recurse = parse_args(o_args[i + 1 :], commandList=cmd_positional.cmds)
+                if command.name == "modify":
+                    recurse = parse_modify(
+                        output["package"],
+                        o_args[i + 1 :],
+                        commandList=cmd_positional.cmds,
+                    )
+                elif command.name == "show":
+                    recurse = parse_show(
+                        output["package"],
+                        o_args[i + 1 :],
+                        commandList=cmd_positional.cmds,
+                    )
+                else:
+                    recurse = parse_args(
+                        o_args[i + 1 :], commandList=cmd_positional.cmds
+                    )
                 cmd_positional.handled = True
             except UnknownCommand:
                 print(f"Unknown {cmd_positional.name} '{cmd_args[i]}'")

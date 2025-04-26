@@ -43,6 +43,7 @@ class Installation:
 class Candidate:
     categories: list[str]
     source: Source
+    module_data: dict
 
     def __init__(
         self,
@@ -52,6 +53,7 @@ class Candidate:
         categories: str | list[str],
         source: Source | str,
         download_url: str,
+        module_data: dict | str,
     ):
         self.module = module
         self.name = name
@@ -63,6 +65,13 @@ class Candidate:
             source if isinstance(source, Source) else Source(*(source.split(":", 1)))
         )
         self.download_url = download_url
+        if isinstance(module_data, str):
+            if module_data == "":
+                self.module_data = {}
+            else:
+                self.module_data = json.loads(module_data)
+        else:
+            self.module_data = module_data
 
 
 class QueryResult:
@@ -75,7 +84,8 @@ class QueryResult:
 
 
 class Arg:
-    pass
+    name: str
+    help: str
 
     def usage(self) -> str:
         return "ERROR"
@@ -106,9 +116,10 @@ class ValueArg(Arg):
 
 
 class PosArg(Arg):
-    def __init__(self, name: str, optional: bool = False):
+    def __init__(self, name: str, help: str, optional: bool = False):
         self.name = name
         self.optional = optional
+        self.help = help
 
     def usage(self) -> str:
         return f"[{self.name}]" if self.optional else f"<{self.name}>"
@@ -117,9 +128,10 @@ class PosArg(Arg):
 class PosArgs(Arg):
     values: list[str] = []
 
-    def __init__(self, name: str, optional: bool = False):
+    def __init__(self, name: str, help: str, optional: bool = False):
         self.name = name
         self.optional = optional
+        self.help = help
 
     def usage(self) -> str:
         return f"[{self.name}...]" if self.optional else f"<{self.name}...>"
@@ -132,33 +144,29 @@ class Command:
         self.args = args
 
     def usage(self) -> str:
-        return f"Usage: {self.name} {' '.join(a.usage() for a in self.args)}"
+        output = f"Usage: {self.name} {' '.join(a.usage() for a in self.args)}\n"
+        if len(self.args) != 0:
+            output += "Arguments:\n"
+        table_data = [["", arg.name, "", "", arg.help] for arg in self.args]
+        output += tabulate(table_data, tablefmt="plain")
+        return output
 
     def __repr__(self):
         return self.name
 
 
 class CmdArg(Arg):
-    def __init__(self, name: str, cmds: list[Command]):
+    def __init__(self, name: str, help: str, cmds: list[Command]):
         self.name = name
         self.cmds = cmds
         self.handled = False
+        self.help = help
 
     def usage(self) -> str:
         output = f"<{self.name}> ...\n"
         output += "Attributes:\n"
 
-        table_data = []
-        for command in self.cmds:
-            table_data.append(
-                [
-                    "",
-                    command.name,
-                    "",
-                    "",
-                    command.help,
-                ]
-            )
+        table_data = [["", command.name, "", "", command.help] for command in self.cmds]
         output += tabulate(table_data, tablefmt="plain")
 
         return output

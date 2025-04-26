@@ -11,6 +11,7 @@ from libraries.exceptions import (
     AlreadyNewest,
     InternalError,
     MultipleCandidates,
+    NoCandidate,
     SpecificVersion,
     UsageError,
 )
@@ -180,10 +181,29 @@ elif args["command"] == "modify":
         launcherLib.add_launcher_later(package, args["attribute"]["--force"])
     elif attribute == "remove-launcher":
         launcherLib.remove_launcher(package)
-    elif attribute == "list-categories":
+    else:
+        source = sourcesLib.get_source(package)
+        if source is None:
+            raise NoCandidate()
+        if attribute in moduleLib.modificationNames(source.module):
+            moduleLib.modify(
+                package, source.module, attribute, args["attribute"][attribute]
+            )
+        else:
+            raise InternalError(f"Unknown Attribute: {attribute}")
+elif args["command"] == "show":
+    package = args["package"]
+    attribute = args["attribute"]["command"]
+    if attribute == "categories":
         launcherLib.list_categories(package)
     else:
-        raise InternalError(f"Unknown Modification: {attribute}")
+        source = sourcesLib.get_source(package)
+        if source is None:
+            raise NoCandidate()
+        if attribute in moduleLib.showNames(source.module):
+            moduleLib.show(package, source.module, attribute)
+        else:
+            raise InternalError(f"Unknown Attribute: {attribute}")
 elif args["command"] in moduleLib.commandNames():
     moduleLib.command(args["command"], args)
 else:

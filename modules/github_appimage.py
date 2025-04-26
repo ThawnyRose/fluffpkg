@@ -15,6 +15,7 @@ from libraries.exceptions import (
     AlreadyInstalled,
     APICallFailed,
 )
+from libraries.utilitiesLib import user_pick
 from libraries import manageInstalledLib
 from libraries import sourcesLib
 from libraries import launcherLib
@@ -23,6 +24,7 @@ import time
 import os
 import stat
 import platform
+import re
 
 
 # https://stackoverflow.com/a/16696317
@@ -42,7 +44,7 @@ def download_file(url: str, output: str | None = None, prettyname: str = "") -> 
     return local_filename
 
 
-def get_github_release(api_url: str) -> dict:
+def get_github_release(api_url: str, appimage_filter: str) -> dict:
     response = requests.get(api_url)
     if response.status_code != 200:
         raise APICallFailed(f"Failed to get repository by url: {api_url}")
@@ -65,15 +67,42 @@ def get_github_release(api_url: str) -> dict:
         print("No release assets of content type 'appimage'")
         exit()
 
+    original_appimages = appimages
+
+    new_appimage_filter = None
+
+    if len(appimages) != 1 and appimage_filter != "":
+        print("Searching by filter:", appimage_filter)
+        appimages = [
+            a
+            for a in appimages
+            if re.search(appimage_filter, a["name"], re.IGNORECASE) is not None
+        ]
+
+    if len(appimages) == 0:
+        print("Warning: user filter left no options. Ignoring...")
+        appimages = original_appimages
+
     if len(appimages) != 1:
         arch = platform.machine()
         # print(f"Warning: multiple appimages found. Filtering by architecture: {arch}")
-        f_appimages = [a for a in appimages if arch in a["name"]]
-        if len(f_appimages) != 1:
-            print("Failed to find a unique appimage.")
-            exit()
+        appimages = [a for a in appimages if arch in a["name"]]
 
-        appimages = f_appimages
+    if len(appimages) != 1:
+        appimage = appimages[
+            user_pick(
+                [a["name"] for a in appimages],
+                "Which appimage would you like to install",
+            )
+        ]
+        appimages = [appimage]
+        new_appimage_filter = re.escape(
+            appimage["name"]
+            .replace(release["tag_name"], "&&")
+            .lower()
+            .replace(".appimage", "")
+        ).replace("\\&\\&", ".*")
+        print(f"Adding appimage filter: {new_appimage_filter}")
 
     appimage = appimages[0]
 
@@ -84,40 +113,44 @@ def get_github_release(api_url: str) -> dict:
             "Name": appimage["name"],
             "DownloadUrl": appimage["browser_download_url"],
         },
+        "filter": new_appimage_filter,
     }
 
 
-def try_get_by_tag(api_url: str) -> dict | None:
+def try_get_by_tag(api_url: str, appimage_filter: str) -> dict | None:
     try:
-        return get_github_release(api_url)
+        return get_github_release(api_url, appimage_filter=appimage_filter)
     except APICallFailed:
         return None
 
 
-def get_github_by_tag(url: str, tag: str) -> dict:
+def get_github_by_tag(url: str, tag: str, appimage_filter: str) -> dict:
     owner, repo = url.split("/")
     output = try_get_by_tag(
-        f"https://api.github.com/repos/{owner}/{repo}/releases/tags/{tag}"
+        f"https://api.github.com/repos/{owner}/{repo}/releases/tags/{tag}",
+        appimage_filter=appimage_filter,
     )
     if output is not None:
         return output
     output = try_get_by_tag(
-        f"https://api.github.com/repos/{owner}/{repo}/releases/tags/v{tag}"
+        f"https://api.github.com/repos/{owner}/{repo}/releases/tags/v{tag}",
+        appimage_filter=appimage_filter,
     )
     if output is not None:
         return output
     output = try_get_by_tag(
-        f"https://api.github.com/repos/{owner}/{repo}/releases/tags/V{tag}"
+        f"https://api.github.com/repos/{owner}/{repo}/releases/tags/V{tag}",
+        appimage_filter=appimage_filter,
     )
     if output is not None:
         return output
     raise APICallFailed(f"Failed to get version {tag}")
 
 
-def get_github_latest_release(url: str) -> dict:
+def get_github_latest_release(url: str, appimage_filter: str) -> dict:
     owner, repo = url.split("/")
     api_url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
-    return get_github_release(api_url)
+    return get_github_release(api_url, appimage_filter=appimage_filter)
 
 
 def setup() -> None:
@@ -146,11 +179,23 @@ def install(
     assert candidate.module == "github-appimage"
     # print(candidate)
     if version is None or isinstance(version, bool):
-        release = get_github_latest_release(candidate.download_url)
+        release = get_github_latest_release(
+            candidate.download_url,
+            appimage_filter=candidate.module_data.get("user_select_filter", ""),
+        )
         version_locked = False
     else:
-        release = get_github_by_tag(candidate.download_url, version)
+        release = get_github_by_tag(
+            candidate.download_url,
+            version,
+            appimage_filter=candidate.module_data.get("user_select_filter", ""),
+        )
         version_locked = True
+
+    if release.get("filter", None) is not None:
+        candidate.module_data["user_select_filter"] = release["filter"]
+        sourcesLib.set_module_data(candidate.package_name, candidate.module_data)
+
     # print(release)
     url = release["Appimage"]["DownloadUrl"]
     name = release["Appimage"]["Name"]
@@ -201,6 +246,7 @@ def add(owner: str, repo: str, failExists=False) -> Candidate:
         "[]",
         "manual:_",
         repository["full_name"],
+        {},
     )
 
     sourcesLib.add_candidate(candidate, failExists=failExists)
@@ -269,7 +315,10 @@ def upgrade(installation: Installation, force: bool = False) -> None:
     if candidate is None:
         raise NoCandidate
 
-    new_version = get_github_latest_release(candidate.download_url)["Tag"]
+    new_version = get_github_latest_release(
+        candidate.download_url,
+        appimage_filter=candidate.module_data.get("user_select_filter", ""),
+    )["Tag"]
     if new_version == installation.version:
         raise AlreadyNewest(installation.package_name)
     remove(installation, upgrade=True)
@@ -302,6 +351,22 @@ def versions(candidate: Candidate) -> None:
     print("\n".join(tag_names))
 
 
+def user_select_filter_modify(package: str, value: str):
+    source = sourcesLib.get_source(package)
+    if source is None:
+        raise NoCandidate
+    source.module_data["user_select_filter"] = value
+    sourcesLib.set_module_data(package, source.module_data)
+    user_select_filter_show(package)
+
+
+def user_select_filter_show(package: str):
+    source = sourcesLib.get_source(package)
+    if source is None:
+        raise NoCandidate
+    print("user_select_filter:", source.module_data.get("user_select_filter", ""))
+
+
 moduleLib.register(
     "github-appimage",
     {
@@ -314,7 +379,7 @@ moduleLib.register(
                 Command(
                     "add-github-appimage",
                     "Adds installation candidates for github appimages",
-                    [PosArgs("owner/repo")],
+                    [PosArgs("owner/repo", "Package to add to sources")],
                 ),
                 add_cmd,
             ),
@@ -327,11 +392,19 @@ moduleLib.register(
                         ValueArg(
                             "-v", "--version", "Specify a version for installation"
                         ),
-                        PosArgs("owner/repo"),
+                        PosArgs("owner/repo", "Package to add to sources and install"),
                     ],
                 ),
                 add_install_cmd,
             ),
+        ],
+        "attributes": [
+            (
+                "user_select_filter",
+                "Filter for appimage downloads",
+                user_select_filter_modify,
+                user_select_filter_show,
+            )
         ],
     },
 )

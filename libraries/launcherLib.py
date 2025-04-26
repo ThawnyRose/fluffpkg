@@ -171,7 +171,6 @@ def list_categories(package: str) -> None:
     launcherPath = (
         Path("~/.fluffpkg/data/appimage/launcher/").expanduser() / launcherName
     )
-    found_category_line = False
     with open(launcherPath, "r") as f:
         launcher_contents = f.read()
     lines = launcher_contents.split("\n")

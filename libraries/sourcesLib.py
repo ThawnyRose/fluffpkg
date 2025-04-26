@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS candidates (
     package_name TEXT UNIQUE NOT NULL,
     categories TEXT,
     source TEXT,
-    download_url TEXT
+    download_url TEXT,
+    module_data TEXT
 )
 """
 )
@@ -91,7 +92,7 @@ def add_candidate(candidate: Candidate, failExists: bool = True) -> None:
             return
 
     cursor.execute(
-        "INSERT INTO candidates (module, name, package_name, categories, source, download_url) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO candidates (module, name, package_name, categories, source, download_url, module_data) VALUES (?, ?, ?, ?, ?, ?, ?)",
         (
             candidate.module,
             candidate.name,
@@ -99,6 +100,7 @@ def add_candidate(candidate: Candidate, failExists: bool = True) -> None:
             json.dumps(candidate.categories),
             f"{candidate.source.kind}:{candidate.source.url}",
             candidate.download_url,
+            json.dumps(candidate.module_data),
         ),
     )
     conn.commit()
@@ -123,6 +125,24 @@ def update_categories(package: str, categories: list[str]) -> None:
     cursor.execute(
         "UPDATE candidates SET categories = ? WHERE package_name = ?",
         (json.dumps(categories), package),
+    )
+    conn.commit()
+
+
+# def get_module_data(package: str):
+#     cursor.execute(
+#         "SELECT module_data FROM candidates WHERE package_name = ?",
+#         (package,),
+#     )
+#     match = cursor.fetchall()[0][0]
+#     match = {} if match is None else json.loads(match)
+#     return match
+
+
+def set_module_data(package: str, module_data: dict) -> None:
+    cursor.execute(
+        "UPDATE candidates SET module_data = ? WHERE package_name = ?",
+        (json.dumps(module_data), package),
     )
     conn.commit()
 
