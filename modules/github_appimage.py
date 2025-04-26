@@ -137,7 +137,7 @@ def install(
     candidate: Candidate,
     nolauncher: bool = True,
     path: bool = False,
-    version: str | bool = False,
+    version: str | None = None,
     upgrade=False,
 ) -> None:
     if manageInstalledLib.check_installed(candidate) and not upgrade:
@@ -145,7 +145,7 @@ def install(
     setup()
     assert candidate.module == "github-appimage"
     # print(candidate)
-    if not version or isinstance(version, bool):
+    if version is None or isinstance(version, bool):
         release = get_github_latest_release(candidate.download_url)
         version_locked = False
     else:
@@ -225,7 +225,7 @@ def add_install(
     owner: str,
     repo: str,
     nolauncher: bool = False,
-    version: str | bool = False,
+    version: str | None = None,
 ) -> None:
     candidate = add(owner, repo)
     install(candidate, nolauncher, version=version)

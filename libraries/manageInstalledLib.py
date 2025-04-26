@@ -21,7 +21,6 @@ CREATE TABLE IF NOT EXISTS installed (
     module TEXT,
     source TEXT,
     executable_path TEXT,
-    categories TEXT,
     version_locked BOOL
 )
 """
@@ -36,7 +35,7 @@ def mark_installed(
     version_locked: bool = False,
 ):
     cursor.execute(
-        "INSERT INTO installed (package_name, name, version, launcher, path, module, source, executable_path, categories, version_locked) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO installed (package_name, name, version, launcher, path, module, source, executable_path, version_locked) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
             candidate.package_name,
             candidate.name,
@@ -46,7 +45,6 @@ def mark_installed(
             candidate.module,
             candidate.source.__str__(),
             executable_path,
-            json.dumps(candidate.categories),
             version_locked,
         ),
     )

@@ -185,9 +185,9 @@ def parse_args(cmd_args: list[str], commandList=builtin_commands) -> dict:
         # print(arg)
         if "=" in arg:
             arg_k, arg_v = arg.split("=", 1)
-            for f in values:
-                if arg_k == f.name or arg_k == f.short:
-                    f.value = arg_v
+            for v in values:
+                if arg_k == v.name or arg_k == v.short:
+                    v.value = arg_v
                     done = True
         if done:
             continue
@@ -254,8 +254,8 @@ def parse_args(cmd_args: list[str], commandList=builtin_commands) -> dict:
         output[p.name] = None
 
     for i in flags + values:
-        if i.value is not None:
-            output[i.name] = i.value
+        # if i.value is not None:
+        output[i.name] = i.value
     if star_positional is not None:
         output[star_positional.name] = star_positional.values
     return output

@@ -131,11 +131,17 @@ def add_launcher_later(package: str, force: bool = False) -> None:
     if install.launcher:
         print("Could not add launcher, package already has launcher")
         exit()
+    source = sourcesLib.get_source(package)
+    if source is None:
+        print("Couldn't find source for package, cannot load categories")
+        categories = []
+    else:
+        categories = source.categories
     add_launcher(
         package,
         install.name,
         install.executable_path,
-        install.categories,
+        categories,
         force,
     )
 

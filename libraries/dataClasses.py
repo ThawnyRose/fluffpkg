@@ -13,7 +13,6 @@ class Source:
 
 
 class Installation:
-    categories: list[str]
     source: Source
 
     def __init__(
@@ -26,7 +25,6 @@ class Installation:
         module: str,
         source: Source | str,
         executable_path: str,
-        categories: list[str] | str,
         version_locked: bool,
     ):
         self.name = name
@@ -39,9 +37,6 @@ class Installation:
             source if isinstance(source, Source) else Source(*(source.split(":", 1)))
         )
         self.executable_path = executable_path
-        self.categories = (
-            json.loads(categories) if isinstance(categories, str) else categories
-        )
         self.version_locked = version_locked
 
 
