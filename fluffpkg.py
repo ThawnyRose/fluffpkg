@@ -18,6 +18,31 @@ from libraries.exceptions import (
 )
 import sys
 
+from libraries.dataClasses import Candidate
+
+c = Candidate(
+    "dotdeb",
+    "VirtualBox",
+    "virtuabox",
+    ["virtual", "machine"],
+    "manual:_",
+    "https://download.virtualbox.org/virtualbox/",
+    {
+        "url_type": "indexpage",
+        "line_regex": r'<a href="(.*)\/">(\d+)\.(\d+)\.(\d+)\/<\/a>\s*(.*)  -',
+        "regex_groups": ["rel_path", "sv3", "sv2", "sv1", "timestamp:%d-%b-%Y %H:%M"],
+        "download_url": "https://download.virtualbox.org/virtualbox/&semver&/virtualbox-&sv3&.&sv2&_&semver&-164728~Debian~bookworm_amd64.deb",
+        "info_gathering": [
+            {
+                "url": "https://download.virtualbox.org/virtualbox/&semver&/",
+                "single_regex":
+            }
+        ],
+    },
+)
+moduleLib.install("dotdeb", c, {})
+exit()
+
 Path("~/.fluffpkg").expanduser().mkdir(parents=True, exist_ok=True)
 Path("~/.fluffpkg/bin").expanduser().mkdir(parents=True, exist_ok=True)
 
