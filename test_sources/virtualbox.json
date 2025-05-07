@@ -1,0 +1,40 @@
+[{
+	"module":"dotdeb",
+	"name":"VirtualBox",
+	"package_name": "virtualbox",
+	"categories":["virtual", "machine"],
+	"download_url": "",
+	"module_data": {
+		"info_gathering": [
+			{
+				"url": "https://download.virtualbox.org/virtualbox/",
+				"regex": "<a href=\"(.*)\\/\">(\\d+)\\.(\\d+)\\.(\\d+)\\/<\\/a>\\s*(.*)  -",
+				"kind": "per_line",
+				"regex_groups": [
+					"rel_path",
+					"sv3",
+					"sv2",
+					"sv1",
+					"timestamp:%d-%b-%Y %H:%M"
+				]
+			},
+			{"kind": "target","target": "versions"},
+			{"kind": "filter_version"},
+			{
+				"url": "https://download.virtualbox.org/virtualbox/{rel_path}/",
+				"regex": "<a href=\"virtualbox-\\d+\\.\\d+_\\d+\\.\\d+\\.\\d+-(\\d*)~",
+				"kind": "one_shot", "regex_groups": ["uuid"]
+			},
+			{"kind": "populate_system"},
+			{"kind": "construct", "name": "filename", "value": "virtualbox-{semver}.deb"},
+			{"kind": "construct", "name": "deb_package_name", "value": "virtualbox-{sv3}.{sv2}"},
+			{
+				"kind": "target",
+				"target": "download_url",
+				"url": "https://download.virtualbox.org/virtualbox/{rel_path}/virtualbox-{sv3}.{sv2}_{semver}-{uuid}~{System_Id}~{system_version_name}_{system_arch_amd}.deb"
+			}
+		],
+		"manages_own_launcher": true,
+		"manages_own_path": true
+	}
+}]

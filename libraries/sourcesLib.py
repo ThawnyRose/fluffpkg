@@ -4,9 +4,11 @@ import json
 
 from libraries.exceptions import (
     MultipleCandidates,
-    NoCandidate,
+    AlreadySourced,
+    SourceAlreadyExists,
+    SourceNotFound,
 )
-from libraries.dataClasses import Candidate, QueryResult
+from libraries.dataClasses import Candidate, QueryResult, Source
 from libraries import manageInstalledLib
 
 db_path = Path("~/.fluffpkg/database.sqlite3").expanduser()
@@ -81,29 +83,42 @@ def check_existing_source(package: str) -> bool:
     return type(q) is QueryResult and q.kind == "found"
 
 
-def add_candidate(candidate: Candidate, failExists: bool = True) -> None:
-    if check_existing_source(candidate.package_name):
-        if failExists:
-            print(
-                f"Package '{candidate.package_name}' is already sourced. Try `install`."
-            )
-            exit()
-        else:
-            return
+def add_candidate(
+    candidate: Candidate, update: bool = False, update_source: str = ""
+) -> None:
+    if update:
+        cursor.execute(
+            "UPDATE candidates SET module = ?, name = ?, package_name = ?, categories = ?, source = ?, download_url = ?, module_data = ? WHERE source = ? AND package_name = ?",
+            (
+                candidate.module,
+                candidate.name,
+                candidate.package_name,
+                json.dumps(candidate.categories),
+                f"{candidate.source.kind}:{candidate.source.url}",
+                candidate.download_url,
+                json.dumps(candidate.module_data),
+                update_source,
+                candidate.package_name,
+            ),
+        )
+        conn.commit()
+    else:
+        if check_existing_source(candidate.package_name):
+            raise AlreadySourced(candidate.package_name)
 
-    cursor.execute(
-        "INSERT INTO candidates (module, name, package_name, categories, source, download_url, module_data) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (
-            candidate.module,
-            candidate.name,
-            candidate.package_name,
-            json.dumps(candidate.categories),
-            f"{candidate.source.kind}:{candidate.source.url}",
-            candidate.download_url,
-            json.dumps(candidate.module_data),
-        ),
-    )
-    conn.commit()
+        cursor.execute(
+            "INSERT INTO candidates (module, name, package_name, categories, source, download_url, module_data) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                candidate.module,
+                candidate.name,
+                candidate.package_name,
+                json.dumps(candidate.categories),
+                f"{candidate.source.kind}:{candidate.source.url}",
+                candidate.download_url,
+                json.dumps(candidate.module_data),
+            ),
+        )
+        conn.commit()
 
 
 def remove_candidate(package: str) -> None:
@@ -151,3 +166,136 @@ def list() -> list[Candidate]:
     cursor.execute("SELECT * FROM candidates")
     rows = cursor.fetchall()
     return [Candidate(*row[1:]) for row in rows]
+
+
+def add_source(sourcepath: str) -> None:
+    if sourcepath.startswith("https://") or sourcepath.startswith("http://"):
+        raise NotImplementedError("Remote sources not yet supported")
+        source = Source("remote", sourcepath)
+    else:
+        path = Path(sourcepath)
+        if not path.exists():
+            print(f"Failed to read source file: file does not exist '{sourcepath}'")
+            exit()
+        if not path.is_file():
+            print(f"Failed to read source file: file is a directory '{sourcepath}'")
+            exit()
+        with open(path, "r") as f:
+            new_source_data = json.load(f)
+
+        source = Source("local", sourcepath)
+
+    cursor.execute(
+        "SELECT * FROM sources WHERE kind = ? AND url = ?", (source.kind, source.url)
+    )
+    rows = cursor.fetchall()
+    if len(rows) != 0:
+        raise SourceAlreadyExists()
+
+    cursor.execute(
+        "INSERT INTO sources (kind, url) VALUES (?, ?)",
+        (source.kind, source.url),
+    )
+    conn.commit()
+
+    for item in new_source_data:
+        candidate = Candidate(
+            item["module"],
+            item["name"],
+            item["package_name"],
+            item["categories"],
+            source,
+            item["download_url"],
+            item["module_data"],
+        )
+        try:
+            add_candidate(candidate)
+        except AlreadySourced:
+            print(
+                f"Skipping package {candidate.package_name} which already has a source"
+            )
+
+
+def remove_source(sourcepath: str) -> None:
+    if sourcepath == "_":
+        print("Cannot remove builtin source")
+        exit()
+    try:
+        _id = int(sourcepath)
+        cursor.execute("SELECT kind, url FROM sources WHERE id = ?", (_id,))
+    except ValueError:
+        cursor.execute("SELECT kind, url FROM sources WHERE url = ?", (sourcepath,))
+
+    rows = cursor.fetchall()
+    if len(rows) == 0:
+        raise SourceNotFound(sourcepath)
+
+    source = Source(*rows[0])
+    source_string = str(source)
+
+    cursor.execute(
+        "SELECT package_name FROM installed WHERE source = ?", (source_string,)
+    )
+    rows = cursor.fetchall()
+    if len(rows) != 0:
+        print("Could not remove source, packages depend on it:")
+        for r in rows:
+            print("   ", r[0])
+        exit()
+
+    try:
+        _id = int(sourcepath)
+        cursor.execute("DELETE FROM sources WHERE id = ?", (_id,))
+    except ValueError:
+        cursor.execute("DELETE FROM sources WHERE url = ?", (sourcepath,))
+    cursor.execute("DELETE FROM candidates WHERE source = ?", (source_string,))
+    conn.commit()
+
+
+def update_source(sourcepath: str) -> None:
+    if sourcepath == "_":
+        print("Cannot update builtin source")
+        exit()
+    try:
+        _id = int(sourcepath)
+        cursor.execute("SELECT kind, url FROM sources WHERE id = ?", (_id,))
+    except ValueError:
+        cursor.execute("SELECT kind, url FROM sources WHERE url = ?", (sourcepath,))
+    rows = cursor.fetchall()
+    if len(rows) == 0:
+        raise SourceNotFound(sourcepath)
+
+    source = Source(*rows[0])
+    if source.kind == "local":
+        path = Path(source.url)
+        if not path.exists():
+            print(f"Failed to read source file: file does not exist '{source.url}'")
+            exit()
+        if not path.is_file():
+            print(f"Failed to read source file: file is a directory '{source.url}'")
+            exit()
+        with open(path, "r") as f:
+            new_source_data = json.load(f)
+    else:
+        print("Unhandled source kind (for updates):", source.kind)
+        exit()
+
+    for item in new_source_data:
+        candidate = Candidate(
+            item["module"],
+            item["name"],
+            item["package_name"],
+            item["categories"],
+            source,
+            item["download_url"],
+            item["module_data"],
+        )
+        add_candidate(candidate, update=True, update_source=str(source))
+    print("Source updated")
+
+
+def list_sources() -> None:
+    cursor.execute("SELECT id, kind, url FROM sources")
+    rows = cursor.fetchall()
+    for r in rows:
+        print(f"[{r[0]}] {r[1]} : {r[2]}")

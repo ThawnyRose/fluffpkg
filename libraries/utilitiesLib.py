@@ -1,3 +1,7 @@
+import time
+import requests
+
+
 def user_pick(options: list[str], prompt="Selection"):
     for i, opt in enumerate(options):
         print(f"[{i}] {opt}")

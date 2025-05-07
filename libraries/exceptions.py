@@ -12,6 +12,11 @@ class InternalError(SilentException):
         super().__init__(f"Internal Error: {message}")
 
 
+class ModuleError(SilentException):
+    def __init__(self, message: str):
+        super().__init__(f"Module Error: {message}")
+
+
 class UsageError(SilentException):
     def __init__(self, message: str):
         super().__init__(f"Usage: fluffpkg {message}")
@@ -47,6 +52,24 @@ class SpecificVersion(SilentException):
 class APICallFailed(SilentException):
     def __init__(self, message: str):
         super().__init__(message)
+
+
+### SourcesLib
+
+
+class AlreadySourced(SilentException):
+    def __init__(self, package: str):
+        super().__init__(f"Package '{package}' is already sourced")
+
+
+class SourceNotFound(SilentException):
+    def __init__(self, source: str):
+        super().__init__(f"Source '{source}' not found")
+
+
+class SourceAlreadyExists(SilentException):
+    def __init__(self):
+        super().__init__("This source is already included. Please update it instead")
 
 
 ### ArgumentLib

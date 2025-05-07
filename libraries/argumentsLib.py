@@ -123,6 +123,22 @@ builtin_commands: list[Command] = [
             FlagArg("-v", "--noversion", "Return with a glob for the file version"),
         ],
     ),
+    Command(
+        "add-source",
+        "Copy a remote source into the local database",
+        [PosArg("source", "File or link to source")],
+    ),
+    Command(
+        "remove-source",
+        "Copy a remote source into the local database",
+        [PosArg("source", "File or link to source")],
+    ),
+    Command(
+        "update-source",
+        "Copy a remote source into the local database",
+        [PosArg("source", "File or link to source")],
+    ),
+    Command("list-sources", "List sources", []),
 ]
 
 
@@ -219,7 +235,7 @@ def parse_show(
 
 
 def parse_args(cmd_args: list[str], commandList=builtin_commands) -> dict:
-    o_args = cmd_args
+    o_args = cmd_args[1:]
     cmd_args = [x.lower() for x in cmd_args]
 
     command_name = cmd_args[0]
@@ -260,7 +276,7 @@ def parse_args(cmd_args: list[str], commandList=builtin_commands) -> dict:
 
     for i in range(len(cmd_args)):
         if handlingStar and star_positional is not None:
-            star_positional.values.append(cmd_args[i])
+            star_positional.values.append(o_args[i])
             continue
 
         if skip_next > 0:
@@ -288,7 +304,7 @@ def parse_args(cmd_args: list[str], commandList=builtin_commands) -> dict:
 
         for v in values:
             if arg == v.name or arg == v.short:
-                v.value = cmd_args[i + 1]
+                v.value = o_args[i + 1]
                 done = True
                 skip_next = 1
         if done:
@@ -296,7 +312,7 @@ def parse_args(cmd_args: list[str], commandList=builtin_commands) -> dict:
 
         if len(positionals) > 0:
             pos = positionals.pop(0)
-            output[pos.name] = arg
+            output[pos.name] = o_args[i]
             continue
 
         if cmd_positional is not None:

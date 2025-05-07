@@ -22,7 +22,7 @@ For example:
 git clone https://github.com/Thawnyrose/fluffpkg
 ln -s ~/Applications/fluffpkg/fluffpkg.py ~/.local/bin/fluffpkg
 (If you want fluffpkg packages to be executable)
-echo "export PATH=\"~/.fluffpkg/bin\":\$PATH" >> ~/.bashrc
+echo 'export PATH="~/.fluffpkg/bin":$PATH' >> ~/.bashrc
 ```
 
 To uninstall, delete the symlink at `~/.local/bin/fluffpkg` and remove the folder you installed the source into. It is HIGHLY recommended to first uninstall all packages installed by fluffpkg first, otherwise dangling files may be left such as broken launcer files, etc...
@@ -161,9 +161,15 @@ add_install_cmd(cmd_args: dict)
 
 - [ ] Add remote source
 
-- [ ] Remove remote source
+- [ ] Remove/update remote source
 
 - [ ] Maybe: Case sensitive categories
+
+- [ ] versions [--show \<amount\>]
+
+- [ ] lowercase those random API things in the github appimage module
+
+- [ ] prevent adding integer named sources, just in case....
 
 - [x] Support path in appimage
 

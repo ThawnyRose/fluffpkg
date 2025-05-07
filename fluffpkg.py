@@ -20,28 +20,75 @@ import sys
 
 from libraries.dataClasses import Candidate
 
-c = Candidate(
-    "dotdeb",
-    "VirtualBox",
-    "virtuabox",
-    ["virtual", "machine"],
-    "manual:_",
-    "https://download.virtualbox.org/virtualbox/",
-    {
-        "url_type": "indexpage",
-        "line_regex": r'<a href="(.*)\/">(\d+)\.(\d+)\.(\d+)\/<\/a>\s*(.*)  -',
-        "regex_groups": ["rel_path", "sv3", "sv2", "sv1", "timestamp:%d-%b-%Y %H:%M"],
-        "download_url": "https://download.virtualbox.org/virtualbox/&semver&/virtualbox-&sv3&.&sv2&_&semver&-164728~Debian~bookworm_amd64.deb",
-        "info_gathering": [
-            {
-                "url": "https://download.virtualbox.org/virtualbox/&semver&/",
-                "single_regex":
-            }
-        ],
-    },
-)
-moduleLib.install("dotdeb", c, {})
-exit()
+# c = Candidate(
+#     "dotdeb",
+#     "VirtualBox",
+#     "virtualbox",
+#     ["virtual", "machine"],
+#     "manual:_",
+#     "",
+#     {
+#         "info_gathering": [
+#             {
+#                 "url": "https://download.virtualbox.org/virtualbox/",
+#                 "regex": r'<a href="(.*)\/">(\d+)\.(\d+)\.(\d+)\/<\/a>\s*(.*)  -',
+#                 "kind": "per_line",
+#                 "regex_groups": [
+#                     "rel_path",
+#                     "sv3",
+#                     "sv2",
+#                     "sv1",
+#                     "timestamp:%d-%b-%Y %H:%M",
+#                 ],
+#             },
+#             {"kind": "target", "target": "versions"},
+#             {"kind": "filter_version"},
+#             {
+#                 "url": "https://download.virtualbox.org/virtualbox/{rel_path}/",
+#                 "regex": r'<a href="virtualbox-\d+\.\d+_\d+\.\d+\.\d+-(\d*)~',
+#                 "kind": "one_shot",
+#                 "regex_groups": ["uuid"],
+#             },
+#             {"kind": "populate_system"},
+#             {
+#                 "kind": "construct",
+#                 "name": "filename",
+#                 "value": "virtualbox-{semver}.deb",
+#             },
+#             {
+#                 "kind": "construct",
+#                 "name": "deb_package_name",
+#                 "value": "virtualbox-{sv3}.{sv2}",
+#             },
+#             {
+#                 "kind": "target",
+#                 "target": "download_url",
+#                 "url": "https://download.virtualbox.org/virtualbox/{rel_path}/virtualbox-{sv3}.{sv2}_{semver}-{uuid}~{System_Id}~{system_version_name}_{system_arch_amd}.deb",
+#             },
+#         ],
+#         "manages_own_launcher": True,
+#         "manages_own_path": True,
+#     },
+# )
+# moduleLib.versions("dotdeb", c, {})
+# moduleLib.install(
+#     "dotdeb", c, {"--version": None, "--nolauncher": False, "--path": False}
+# )
+# moduleLib.install(
+#     "dotdeb", c, {"--version": "7.0.26", "--nolauncher": False, "--path": False}
+# )
+# moduleLib.remove(
+#     "dotdeb",
+#     manageInstalledLib.query("virtualbox"),
+#     {},
+# )
+# moduleLib.upgrade(
+#     "dotdeb",
+#     manageInstalledLib.query("virtualbox"),
+#     {"--force": True},
+# )
+
+# exit()
 
 Path("~/.fluffpkg").expanduser().mkdir(parents=True, exist_ok=True)
 Path("~/.fluffpkg/bin").expanduser().mkdir(parents=True, exist_ok=True)
@@ -246,6 +293,14 @@ elif args["command"] == "show":
             moduleLib.show(package, source.module, attribute)
         else:
             raise InternalError(f"Unknown Attribute: {attribute}")
+elif args["command"] == "add-source":
+    sourcesLib.add_source(args["source"])
+elif args["command"] == "remove-source":
+    sourcesLib.remove_source(args["source"])
+elif args["command"] == "update-source":
+    sourcesLib.update_source(args["source"])
+elif args["command"] == "list-sources":
+    sourcesLib.list_sources()
 elif args["command"] in moduleLib.commandNames():
     moduleLib.command(args["command"], args)
 else:

@@ -1,5 +1,9 @@
 from pathlib import Path
 import requests
+import os
+import stat
+import platform
+import re
 from libraries.dataClasses import (
     Installation,
     Candidate,
@@ -21,11 +25,6 @@ from libraries import sourcesLib
 from libraries import launcherLib
 from libraries import pathLib
 from libraries import moduleLib
-import time
-import os
-import stat
-import platform
-import re
 
 
 def get_github_release(api_url: str, appimage_filter: str) -> dict:
@@ -314,7 +313,7 @@ def upgrade(installation: Installation, force: bool = False) -> None:
     candidate = sourcesLib.get_source(installation.package_name)
 
     if candidate is None:
-        raise NoCandidate
+        raise NoCandidate()
 
     new_version = get_github_latest_release(
         candidate.download_url,
