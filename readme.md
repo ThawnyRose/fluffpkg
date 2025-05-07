@@ -25,9 +25,13 @@ ln -s ~/Applications/fluffpkg/fluffpkg.py ~/.local/bin/fluffpkg
 echo 'export PATH="~/.fluffpkg/bin":$PATH' >> ~/.bashrc
 ```
 
-To uninstall, delete the symlink at `~/.local/bin/fluffpkg` and remove the folder you installed the source into. It is HIGHLY recommended to first uninstall all packages installed by fluffpkg first, otherwise dangling files may be left such as broken launcer files, etc...
+To uninstall, delete the symlink at `~/.local/bin/fluffpkg`, remove the folder you installed the source into, and undo the path export. It is HIGHLY recommended to first uninstall all packages installed by fluffpkg first, otherwise dangling files or symlinks may be left such as broken launcher files, etc... that could prove difficult to manually find and cleanup
 
-To update, simply got to the source folder and run `git fetch` to pull the newest source
+To update, simply go to the source folder and run `git fetch` to pull the newest source
+
+
+
+No sources are provided by default. Instead, use the `fluffpkg source-add <source>` command to add remote (nyi) or local sources. Some modules (such as the github-appimage) provide commands to easily add packages to the local source and install them, but for some that is not possible.
 
 ## Commands
 
