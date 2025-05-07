@@ -157,6 +157,12 @@ add_install_cmd(cmd_args: dict)
 
 ## To-Do
 
+- [ ] versions [--show \<amount\>] option
+
+- [ ] lowercase those random API things in the github appimage module
+
+- [ ] prevent adding integer named sources, just in case....
+
 - [x] .deb sources
 
 - [x] Add remote source
@@ -164,12 +170,6 @@ add_install_cmd(cmd_args: dict)
 - [x] Remove/update remote source
 
 - [x] Maybe: Case sensitive categories
-
-- [ ] versions [--show \<amount\>] option
-
-- [ ] lowercase those random API things in the github appimage module
-
-- [ ] prevent adding integer named sources, just in case....
 
 - [x] Support path in appimage
 
