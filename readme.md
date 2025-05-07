@@ -157,15 +157,15 @@ add_install_cmd(cmd_args: dict)
 
 ## To-Do
 
-- [ ] .deb sources
+- [x] .deb sources
 
-- [ ] Add remote source
+- [x] Add remote source
 
-- [ ] Remove/update remote source
+- [x] Remove/update remote source
 
-- [ ] Maybe: Case sensitive categories
+- [x] Maybe: Case sensitive categories
 
-- [ ] versions [--show \<amount\>]
+- [ ] versions [--show \<amount\>] option
 
 - [ ] lowercase those random API things in the github appimage module
 
