@@ -71,7 +71,7 @@ class Candidate:
             else:
                 self.module_data = json.loads(module_data)
         else:
-            self.module_data = module_data
+            self.module_data = {}
 
 
 class QueryResult:
